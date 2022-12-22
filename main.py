@@ -2,6 +2,7 @@ import pygame
 
 from Bishop import Bishop
 from BoardSquare import BoardSquare
+from Chessboard import Chessboard
 from King import King
 from Knight import Knight
 from Pawn import Pawn
@@ -12,6 +13,9 @@ pygame.init()
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 800
+BLACK_SQUARE = (181, 136, 99)
+WHITE_SQUARE = (240, 217, 181)
+MOVE_COLOUR = (135, 152, 106)
 
 screen = pygame.display.set_mode((SCREEN_HEIGHT, SCREEN_WIDTH))
 pygame.display.set_caption("Expendable Chess")
@@ -35,7 +39,7 @@ def create_board_square(x_array, y_array, chess_colour, position):
 
 
 def get_square_for_position(x, y):
-    for row in chess_board:
+    for row in chess_squares:
         if row[0].y_pos < y < row[0].y_pos + row[0].size:
             for square in row:
                 if square.x_pos < x < square.x_pos + square.size:
@@ -43,14 +47,14 @@ def get_square_for_position(x, y):
 
 
 def redraw_board():
-    for row in chess_board:
+    for row in chess_squares:
         for square in row:
             redraw_surf = pygame.Surface((square.size, square.size))
 
             if square.is_white:
-                redraw_surf.fill((240, 217, 181))
+                redraw_surf.fill(WHITE_SQUARE)
             else:
-                redraw_surf.fill((181, 136, 99))
+                redraw_surf.fill(BLACK_SQUARE)
 
             screen.blit(redraw_surf, (square.x_pos, square.y_pos))
             if square.piece is not None:
@@ -60,15 +64,19 @@ def redraw_board():
 
 
 def display_piece_moves(move_list: list):
-    for square in move_list:
-        redraw_surf = pygame.Surface((square.size, square.size))
-        redraw_surf.fill((0, 255, 0))
-        screen.blit(redraw_surf, (square.x_pos, square.y_pos))
+    for move in move_list:
+        for row in chess_squares:
+            for square in row:
+                if square.position == move:
+                    pygame.draw.circle(screen, MOVE_COLOUR, (square.x_pos + square.size/2, square.y_pos + square.size/2), 10)
+                    #redraw_surf = pygame.Surface((square.size, square.size))
+                    #redraw_surf.fill((0, 255, 0))
+                    #screen.blit(redraw_surf, (square.x_pos, square.y_pos))
     pygame.display.flip()
     pygame.display.update()
 
 
-chess_board = []
+chess_squares = []
 is_white = False
 for y in range(8):
     chess_row = []
@@ -77,9 +85,9 @@ for y in range(8):
         position = chr(x + 65) + str(8 - y)
         chess_row.append(create_board_square(x, y, is_white, position))
         is_white = not is_white
-    chess_board.append(chess_row)
+    chess_squares.append(chess_row)
 
-for row in chess_board:
+for row in chess_squares:
     for square in row:
         surf = pygame.Surface((square.size, square.size))
 
@@ -131,7 +139,10 @@ for row in chess_board:
 
         pygame.display.flip()
 
+chess_board = Chessboard(chess_squares)
+
 first_clicked_square = None
+possible_moves = []
 
 while True:
     for event in pygame.event.get():
@@ -146,11 +157,14 @@ while True:
             if first_clicked_square is None and clicked_square.piece is not None:
                 # We have a square with a piece and it's the first click
                 first_clicked_square = clicked_square
+                possible_moves = clicked_square.piece.valid_moves(clicked_square.position)
+                display_piece_moves(possible_moves)
             elif first_clicked_square is not None and clicked_square.piece is not None:
                 # We have a piece and it's the second click.
                 print("Cannot move here. Space occupied by", clicked_square.piece.piece_type)
                 first_clicked_square = None
-            elif first_clicked_square is not None and clicked_square.piece is None:
+                redraw_board()
+            elif first_clicked_square is not None and clicked_square.position in possible_moves:
                 # We do not have a piece and it's the second click. Move the piece
                 print("Moving", first_clicked_square.piece.piece_type, "From", first_clicked_square.position, "To",
                       clicked_square.position)
@@ -158,6 +172,12 @@ while True:
                 first_clicked_square.piece = None
                 first_clicked_square = None
                 redraw_board()
+            else:
+                # Illegal move was attempted
+                print("Illegal move attempted")
+                first_clicked_square = None
+                redraw_board()
+
 
     pygame.display.update()
     clock.tick(60)

@@ -9,9 +9,9 @@ class AbstractPiece:
         self.is_active = True
         self.piece_image = self.piece_image()
 
-    def move(self, new_position):
-        self.position = new_position
+    def move(self):
         self.has_moved = True
+
 
     def piece_image(self):
         colour = 'w' if self.is_white else 'b'
