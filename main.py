@@ -39,7 +39,7 @@ def create_board_square(x_array, y_array, chess_colour, position):
 
 
 def get_square_for_position(x, y):
-    for row in chess_squares:
+    for row in chess_board.chess_squares:
         if row[0].y_pos < y < row[0].y_pos + row[0].size:
             for square in row:
                 if square.x_pos < x < square.x_pos + square.size:
@@ -47,7 +47,7 @@ def get_square_for_position(x, y):
 
 
 def redraw_board():
-    for row in chess_squares:
+    for row in chess_board.chess_squares:
         for square in row:
             redraw_surf = pygame.Surface((square.size, square.size))
 
@@ -65,7 +65,7 @@ def redraw_board():
 
 def display_piece_moves(move_list: list):
     for move in move_list:
-        for row in chess_squares:
+        for row in chess_board.chess_squares:
             for square in row:
                 if square.position == move:
                     pygame.draw.circle(screen, MOVE_COLOUR, (square.x_pos + square.size/2, square.y_pos + square.size/2), 10)
@@ -151,33 +151,40 @@ while True:
             quit()
         elif event.type == pygame.MOUSEBUTTONDOWN:
             x, y = pygame.mouse.get_pos()
-            clicked_square = get_square_for_position(x, y)
+            clicked_square = chess_board.get_square_for_position(x, y)
 
             # Checking the clicked squares length to determine if first or second click.
             if first_clicked_square is None and clicked_square.piece is not None:
                 # We have a square with a piece and it's the first click
                 first_clicked_square = clicked_square
+                chess_board.select_square(clicked_square)
                 possible_moves = clicked_square.piece.valid_moves(clicked_square.position)
+                possible_moves = chess_board.find_possible_moves(possible_moves)
                 display_piece_moves(possible_moves)
+                """
             elif first_clicked_square is not None and clicked_square.piece is not None:
                 # We have a piece and it's the second click.
                 print("Cannot move here. Space occupied by", clicked_square.piece.piece_type)
                 first_clicked_square = None
+                chess_board.deselect_square()
                 redraw_board()
+                """
             elif first_clicked_square is not None and clicked_square.position in possible_moves:
                 # We do not have a piece and it's the second click. Move the piece
                 print("Moving", first_clicked_square.piece.piece_type, "From", first_clicked_square.position, "To",
                       clicked_square.position)
-                clicked_square.piece = first_clicked_square.piece
-                first_clicked_square.piece = None
+                chess_board.move_piece(clicked_square)
+                #clicked_square.piece = first_clicked_square.piece
+                #first_clicked_square.piece = None
                 first_clicked_square = None
                 redraw_board()
             else:
                 # Illegal move was attempted
                 print("Illegal move attempted")
                 first_clicked_square = None
+                chess_board.deselect_square()
                 redraw_board()
 
 
     pygame.display.update()
-    clock.tick(60)
+    clock.tick(24)
