@@ -7,13 +7,9 @@ class AbstractPiece:
         self.is_white = is_white
         self.has_moved = False
         self.is_active = True
-        self.piece_image = self.piece_image()
+        self.valid_moves = None
+        self.turns_since_move = -1
 
-    def move(self):
+    def move(self, new_position:str):
         self.has_moved = True
-
-
-    def piece_image(self):
-        colour = 'w' if self.is_white else 'b'
-        image_string = self.piece_type + '_' + colour + '.png'
-        return pygame.transform.scale(pygame.image.load("piece_images/" + image_string).convert_alpha(), (100, 100))
+        self.turns_since_move = 0

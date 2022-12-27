@@ -19,7 +19,7 @@ class Knight(AbstractPiece):
         available_moves.append(chr(ord(column)-2) + str(row + 1))
         available_moves.append(chr(ord(column)-2) + str(row - 1))
         for move in available_moves:
-            if move[0] not in 'ABCDEFGH' or move[1] not in '12345678':
+            if move[0] not in 'ABCDEFGH' or int(move[1:]) not in range(1, 9):
                 pass
             else:
                 final_moves.append(move)

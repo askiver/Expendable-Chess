@@ -4,6 +4,7 @@ from AbstractPiece import AbstractPiece
 class Pawn(AbstractPiece):
     def __init__(self, is_white):
         super().__init__('pawn', is_white)
+        self.en_passant = False
 
     def valid_moves(self, position):
         column = position[0]
@@ -24,4 +25,12 @@ class Pawn(AbstractPiece):
                 available_moves.remove(move)
 
         return available_moves
+
+    def move(self, new_position:str):
+        if not self.has_moved:
+            self.has_moved = True
+            self.turns_since_move = 0
+            if int(new_position[1]) == 4 or int(new_position[1]) == 5:
+                self.en_passant = True
+
 
