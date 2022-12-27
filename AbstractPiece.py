@@ -7,7 +7,7 @@ class AbstractPiece:
         self.is_white = is_white
         self.has_moved = False
         self.is_active = True
-        self.valid_moves = None
+        self.valid_moves = []
         self.turns_since_move = -1
 
     def move(self, new_position:str):

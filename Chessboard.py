@@ -44,7 +44,27 @@ class Chessboard:
 
         else:
             self.selected_square.piece.move(new_square_position)
-            if self.selected_square.piece.piece_type == 'pawn':
+            # Castling
+            if self.selected_square.piece.piece_type == 'king':
+                if abs(ord(self.selected_square.position[0]) - ord(new_square_position[0])) == 2:
+                    if new_square_position[0] == 'G':
+                        self.get_square_from_position('H' + new_square_position[1]).piece.move('F' + new_square_position[1])
+                        self.get_square_from_position('F' + new_square_position[1]).piece = self.get_square_from_position('H' + new_square_position[1]).piece
+                        self.get_square_from_position('H' + new_square_position[1]).piece = None
+                        self.get_square_from_position('G' + new_square_position[1]).piece = self.selected_square.piece
+                    else:
+                        self.get_square_from_position('A' + new_square_position[1]).piece.move('D' + new_square_position[1])
+                        self.get_square_from_position('D' + new_square_position[1]).piece = self.get_square_from_position('A' + new_square_position[1]).piece
+                        self.get_square_from_position('A' + new_square_position[1]).piece = None
+                        self.get_square_from_position('C' + new_square_position[1]).piece = self.selected_square.piece
+                    self.selected_square.piece = None
+                    self.selected_square = None
+                    self.update_valid_moves()
+                    self.increment_piece_turns()
+                    return True
+
+            # En passant
+            elif self.selected_square.piece.piece_type == 'pawn':
                 if self.selected_square.position[0] != new_square_position[0]:
                     if self.get_square_from_position(new_square_position).piece is None:
                         movement = 0
@@ -289,6 +309,26 @@ class Chessboard:
         column = position[0]
         row = int(position[1])
         available_moves = []
+        king = self.get_square_from_position(position).piece
+        # Check if king can castle
+        if not king.has_moved:
+            if not self.check_if_in_check(king.is_white)[0]:
+                if self.check_square_for_piece('A' + str(row)):
+                    rook_square = self.get_square_from_position('A' + str(row))
+                    if rook_square.piece.piece_type == 'rook':
+                        if not rook_square.piece.has_moved:
+                            if not self.check_square_for_piece('B' + str(row)) and not self.check_square_for_piece('C' + str(row)) and not self.check_square_for_piece('D' + str(row)):
+                                if not self.check_for_self_check(king.is_white, self.get_square_from_position(position), self.get_square_from_position('C' + str(row))) and not self.check_for_self_check(king.is_white, self.get_square_from_position(position), self.get_square_from_position('D' + str(row))):
+                                    available_moves.append('C' + str(row))
+                if self.check_square_for_piece('H' + str(row)):
+                    rook_square = self.get_square_from_position('H' + str(row))
+                    if rook_square.piece.piece_type == 'rook':
+                        if not rook_square.piece.has_moved:
+                            if not self.check_square_for_piece('F' + str(row)) and not self.check_square_for_piece('G' + str(row)):
+                                if not self.check_for_self_check(king.is_white, self.get_square_from_position(position), self.get_square_from_position('F' + str(row))) and not self.check_for_self_check(king.is_white, self.get_square_from_position(position), self.get_square_from_position('G' + str(row))):
+                                    available_moves.append('G' + str(row))
+
+
         for i in range(3):
             for j in range(3):
                 available_moves.append(chr(ord(column) + i - 1) + str(row + j - 1))
