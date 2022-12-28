@@ -1,6 +1,8 @@
 import copy
 import itertools
 
+from Queen import Queen
+
 
 class Chessboard:
     def __init__(self, chess_squares: list, real_board: bool):
@@ -35,7 +37,9 @@ class Chessboard:
                         square.piece.turns_since_move += 1
 
 
+    # TODO: Add possibility to promote to other pieces than queen
     def move_piece(self, new_square_position):
+
         new_square = self.get_square_from_position(new_square_position)
         if new_square.position not in self.selected_square.piece.valid_moves:
             self.selected_square = None
@@ -63,8 +67,18 @@ class Chessboard:
                     self.increment_piece_turns()
                     return True
 
-            # En passant
+
             elif self.selected_square.piece.piece_type == 'pawn':
+                if int(new_square_position[1]) == 1 or int(new_square_position[1]) == 8:
+                    self.get_square_from_position(new_square_position).piece = Queen(self.selected_square.piece.is_white)
+                    self.selected_square.piece = None
+                    self.selected_square = None
+                    self.update_valid_moves()
+                    self.increment_piece_turns()
+                    #self.update_valid_moves()
+                    #self.increment_piece_turns()
+                    return True
+                # En passant
                 if self.selected_square.position[0] != new_square_position[0]:
                     if self.get_square_from_position(new_square_position).piece is None:
                         movement = 0
@@ -78,6 +92,8 @@ class Chessboard:
                         self.selected_square = None
                         self.update_valid_moves()
                         self.increment_piece_turns()
+                        #self.update_valid_moves()
+                        #self.increment_piece_turns()
                         return True
 
 
@@ -86,6 +102,8 @@ class Chessboard:
             self.selected_square = None
             self.update_valid_moves()
             self.increment_piece_turns()
+            #self.update_valid_moves()
+            #self.increment_piece_turns()
             return True
 
     def get_square_from_position(self, position):
@@ -122,13 +140,17 @@ class Chessboard:
                     piece_type = square.piece.piece_type
                     position = square.position
                     square.piece.valid_moves = self.find_legal_moves_for_piece(piece_type, position)
-                    """
-                    legal_moves = []
-                    for move in square.piece.valid_moves:
-                        if not self.check_for_self_check(square.piece.is_white, square, self.get_square_from_position(move)):
-                            legal_moves.append(move)
-                    square.piece.valid_moves = legal_moves
-                    """
+
+        if self.real_board:
+            for row in self.chess_squares:
+                for square in row:
+                    if square.piece is not None:
+                        legal_moves = []
+                        for move in square.piece.valid_moves:
+                            if not self.check_for_self_check(square.piece.is_white, square, self.get_square_from_position(move)):
+                                legal_moves.append(move)
+                        square.piece.valid_moves = legal_moves
+
 
     def find_pawn_moves(self, position):
         current_square = self.get_square_from_position(position)
@@ -262,10 +284,11 @@ class Chessboard:
                     if not self.check_square_for_piece(square.position):
                         move_list.append(square.position)
                     else:
-                        if square.piece.piece_type == 'king' and square.piece.is_white == self.get_square_from_position(position).piece.is_white:
-                            continue
+                        if square.piece.piece_type == 'king':
+                            if square.piece.is_white != self.get_square_from_position(position).piece.is_white:
+                                move_list.append(square.position)
+                            break
                         move_list.append(square.position)
-
                         break
                 else:
                     break
@@ -333,8 +356,11 @@ class Chessboard:
             for j in range(3):
                 available_moves.append(chr(ord(column) + i - 1) + str(row + j - 1))
         available_moves.remove(position)
+        final_moves = []
         for move in available_moves:
             if move[0] not in 'ABCDEFGH' or move[1] not in '12345678':
-                available_moves.remove(move)
-        return available_moves
+                continue
+            else:
+                final_moves.append(move)
+        return final_moves
 

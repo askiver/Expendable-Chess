@@ -1,5 +1,6 @@
 import pygame
 
+from AbstractAgent import AbstractAgent
 from Bishop import Bishop
 from BoardSquare import BoardSquare
 from Chessboard import Chessboard
@@ -10,6 +11,14 @@ from Queen import Queen
 from Rook import Rook
 
 pygame.init()
+pygame.font.init()
+pygame.mixer.init()
+
+
+move_sound = pygame.mixer.Sound("sounds/move.mp3")
+capture_sound = pygame.mixer.Sound('sounds/capture.mp3')
+game_over_sound = pygame.mixer.Sound('sounds/game_over.mp3')
+
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 800
@@ -91,8 +100,61 @@ def display_check(position:str):
     pos_x, pos_y = chess_board.get_coordinates_from_position(position)
     pygame.draw.circle(screen, (255, 0, 0), (pos_x + 50, pos_y + 50), 10)
 
+white_pieces = []
+black_pieces = []
+num_white_pieces = 16
+num_black_pieces = 16
+
+def count_pieces():
+    white_pieces.clear()
+    black_pieces.clear()
+    for row in chess_board.chess_squares:
+        for square in row:
+            if square.piece is not None:
+                if square.piece.is_white:
+                    white_pieces.append(square.piece)
+                else:
+                    black_pieces.append(square.piece)
+# Checks if the game is over
+# Game is over when a side which is in check has no valid moves
+def check_for_game_over():
+    if white_turn:
+        for white_piece in white_pieces:
+            if white_piece.valid_moves:
+                return False
+        if chess_board.check_if_in_check(True)[0]:
+            print("White has been checkmated")
+            return True
+        else:
+            print("Stalemate")
+            return True
+    else:
+        for black_piece in black_pieces:
+            if black_piece.valid_moves:
+                return False
+        if chess_board.check_if_in_check(False)[0]:
+            print("Black has been checkmated")
+            return True
+        else:
+            print("Stalemate")
+            return True
+
+def play_move_sound():
+    global num_white_pieces, num_black_pieces
+    if num_white_pieces > len(white_pieces) or num_black_pieces > len(black_pieces):
+        capture_sound.play()
+    else:
+        move_sound.play()
+
+    num_white_pieces = len(white_pieces)
+    num_black_pieces = len(black_pieces)
+
+
+
+
 
 chess_squares = []
+
 is_white = False
 for y in range(8):
     chess_row = []
@@ -153,6 +215,13 @@ for row in chess_squares:
             square.piece = King(True)
             screen.blit(piece_image(square), (square.x_pos, square.y_pos))
 
+        if square.piece is not None:
+            if square.piece.is_white:
+                white_pieces.append(square.piece)
+            else:
+                black_pieces.append(square.piece)
+
+
         pygame.display.flip()
 
 chess_board = Chessboard(chess_squares, True)
@@ -161,6 +230,7 @@ chess_board.update_valid_moves()
 first_clicked_square = None
 possible_moves = []
 white_turn = True
+computer_opponent = AbstractAgent(chess_board, False)
 
 while True:
     for event in pygame.event.get():
@@ -168,41 +238,60 @@ while True:
             pygame.quit()
             quit()
         elif event.type == pygame.MOUSEBUTTONDOWN:
-            x, y = pygame.mouse.get_pos()
-            clicked_square = chess_board.get_square_for_position(x, y)
 
-            # Checking the clicked squares length to determine if first or second click.
-            if first_clicked_square is None and clicked_square.piece is not None and clicked_square.piece.is_white == white_turn:
-                # We have a square with a piece and it's the first click
-                first_clicked_square = clicked_square
-                chess_board.update_valid_moves()
-                chess_board.select_square(clicked_square)
-                #possible_moves = clicked_square.piece.valid_moves(clicked_square.position)
-                #possible_moves = chess_board.find_possible_moves(possible_moves)
-                display_piece_moves(clicked_square.piece.valid_moves)
+            if not white_turn:
+                if check_for_game_over():
+                    print("Game Over")
+                    pygame.quit()
+                    quit()
 
-            elif first_clicked_square is not None and clicked_square.position in first_clicked_square.piece.valid_moves:
-                # We do not have a piece and it's the second click. Move the piece
-                if chess_board.check_for_self_check(first_clicked_square.piece.is_white, first_clicked_square, clicked_square):
-                    print("Cannot move here. Would put you in check.")
+                start_pos, end_pos = computer_opponent.get_move()
+                start_square = chess_board.get_square_from_position(start_pos)
+                chess_board.select_square(start_square)
+                chess_board.move_piece(end_pos)
+                count_pieces()
+                play_move_sound()
+                white_turn = True
+                redraw_board()
+            else:
+                x, y = pygame.mouse.get_pos()
+                clicked_square = chess_board.get_square_for_position(x, y)
+
+                # Checking the clicked squares length to determine if first or second click.
+                if first_clicked_square is None and clicked_square is not None and clicked_square.piece is not None and clicked_square.piece.is_white == white_turn:
+                    # We have a square with a piece and it's the first click
+                    first_clicked_square = clicked_square
+                    chess_board.update_valid_moves()
+                    chess_board.select_square(clicked_square)
+                    #possible_moves = clicked_square.piece.valid_moves(clicked_square.position)
+                    #possible_moves = chess_board.find_possible_moves(possible_moves)
+                    display_piece_moves(clicked_square.piece.valid_moves)
+
+                elif first_clicked_square is not None and clicked_square.position in first_clicked_square.piece.valid_moves:
+                    # We do not have a piece and it's the second click. Move the piece
+                    if chess_board.check_for_self_check(first_clicked_square.piece.is_white, first_clicked_square, clicked_square):
+                        print("Cannot move here. Would put you in check.")
+                        first_clicked_square = None
+                        chess_board.deselect_square()
+                        redraw_board()
+                    else:
+                        print("Moving", first_clicked_square.piece.piece_type, "From", first_clicked_square.position, "To",
+                              clicked_square.position)
+                        chess_board.move_piece(clicked_square.position)
+                        #clicked_square.piece = first_clicked_square.piece
+                        #first_clicked_square.piece = None
+                        first_clicked_square = None
+                        count_pieces()
+                        play_move_sound()
+                        white_turn = False
+                        redraw_board()
+
+                else:
+                    # Illegal move was attempted
+                    print("Illegal move attempted")
                     first_clicked_square = None
                     chess_board.deselect_square()
                     redraw_board()
-                else:
-                    print("Moving", first_clicked_square.piece.piece_type, "From", first_clicked_square.position, "To",
-                          clicked_square.position)
-                    chess_board.move_piece(clicked_square.position)
-                    #clicked_square.piece = first_clicked_square.piece
-                    #first_clicked_square.piece = None
-                    first_clicked_square = None
-                    white_turn = not white_turn
-                    redraw_board()
-            else:
-                # Illegal move was attempted
-                print("Illegal move attempted")
-                first_clicked_square = None
-                chess_board.deselect_square()
-                redraw_board()
 
 
     pygame.display.update()
