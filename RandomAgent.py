@@ -1,7 +1,7 @@
 import random
 
 
-class AbstractAgent:
+class RandomAgent:
     def __init__(self, chess_board, is_white):
         self.chess_board = chess_board
         self.is_white = is_white

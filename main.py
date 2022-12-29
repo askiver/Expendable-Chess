@@ -1,6 +1,9 @@
+import time
+
 import pygame
 
-from AbstractAgent import AbstractAgent
+from MinMaxAgent import MinMaxAgent
+from RandomAgent import RandomAgent
 from Bishop import Bishop
 from BoardSquare import BoardSquare
 from Chessboard import Chessboard
@@ -230,7 +233,8 @@ chess_board.update_valid_moves()
 first_clicked_square = None
 possible_moves = []
 white_turn = True
-computer_opponent = AbstractAgent(chess_board, False)
+computer_opponent_random = RandomAgent(chess_board, False)
+computer_opponent_minimax = MinMaxAgent(3, chess_board, False)
 
 while True:
     for event in pygame.event.get():
@@ -242,10 +246,14 @@ while True:
             if not white_turn:
                 if check_for_game_over():
                     print("Game Over")
-                    pygame.quit()
-                    quit()
-
-                start_pos, end_pos = computer_opponent.get_move()
+                    while True:
+                        for event in pygame.event.get():
+                            if event.type == pygame.QUIT:
+                                pygame.quit()
+                                quit()
+                pretime = time.time()
+                start_pos, end_pos = computer_opponent_minimax.get_move()
+                print("Time taken: " + str(time.time() - pretime))
                 start_square = chess_board.get_square_from_position(start_pos)
                 chess_board.select_square(start_square)
                 chess_board.move_piece(end_pos)
