@@ -1,15 +1,16 @@
 import copy
 import itertools
+import numpy as np
+from numpy import ndarray
 
 from Queen import Queen
 
 
 class Chessboard:
-    def __init__(self, chess_squares: list, real_board: bool):
+    def __init__(self, chess_squares: ndarray, real_board: bool):
         self.chess_squares = chess_squares
         self.selected_square = None
         self.real_board = real_board
-        self.legal_moves = []
 
     def get_square_for_position(self, x, y):
         for row in self.chess_squares:
@@ -27,7 +28,6 @@ class Chessboard:
 
     def deselect_square(self):
         self.selected_square = None
-        self.legal_moves = []
 
     def increment_piece_turns(self):
         for row in self.chess_squares:
@@ -106,15 +106,15 @@ class Chessboard:
             #self.increment_piece_turns()
             return True
 
-    def get_square_from_position(self, position):
-        for row in self.chess_squares:
-            for square in row:
-                if square.position == position:
-                    return square
-        return None
+    def get_square_from_position(self, position:str):
+        column = ord(position[0]) - 65
+        row = 8 - int(position[1])
+        return self.chess_squares[row][column]
 
     def check_square_for_piece(self, position: str):
         square = self.get_square_from_position(position)
+        if square is None:
+            return False
         if square.piece is not None:
             return True
         return False
@@ -162,39 +162,37 @@ class Chessboard:
         row = int(position[1])
         move_list = []
         if 1 < row < 8:
-            if self.get_square_from_position(position[0] + str(int(position[1]) + movement)).piece is None:
+            if not self.check_square_for_piece(position[0] + str(int(position[1]) + movement)):
                 move_list.append(position[0] + str(int(position[1]) + movement))
         if current_square.piece.has_moved is False:
-            if self.get_square_from_position(position[0] + str(int(position[1]) + movement * 2)).piece is None:
+            if not self.check_square_for_piece(position[0] + str(int(position[1]) + movement * 2)):
                 move_list.append(position[0] + str(int(position[1]) + movement * 2))
+
         if column != 'H':
-            if self.get_square_from_position(chr(ord(position[0]) + 1) + str(int(position[1]) + movement)).piece is not None:
+            if self.check_square_for_piece(chr(ord(position[0]) + 1) + str(int(position[1]) + movement)):
                 if self.get_square_from_position(chr(ord(position[0]) + 1) + str(int(position[1]) + movement)).piece.piece_type != 'king':
                     move_list.append(chr(ord(position[0]) + 1) + str(int(position[1]) + movement))
                 else:
                     if self.get_square_from_position(chr(ord(position[0]) + 1) + str(int(position[1]) + movement)).piece.is_white != current_square.piece.is_white:
                         move_list.append(chr(ord(position[0]) + 1) + str(int(position[1]) + movement))
-            if self.get_square_from_position(chr(ord(position[0]) + 1) + position[1]).piece is not None:
-                if self.get_square_from_position(chr(ord(position[0]) + 1) + position[1]).piece.piece_type == 'pawn':
-                    if self.get_square_from_position(chr(ord(position[0]) + 1) + position[1]).piece.is_white != current_square.piece.is_white:
-                        if self.get_square_from_position(chr(ord(position[0]) + 1) + position[1]).piece.turns_since_move == 1:
-                            if self.get_square_from_position(chr(ord(position[0]) + 1) + position[1]).piece.en_passant:
-                                move_list.append(chr(ord(position[0]) + 1) + str(int(position[1]) + movement))
+            if self.check_square_for_piece(chr(ord(position[0]) + 1) + position[1]):
+                piece = self.get_square_from_position(chr(ord(position[0]) + 1) + position[1]).piece
+                if piece.piece_type== 'pawn' and piece.en_passant and piece.is_white != current_square.piece.is_white and piece.turns_since_move == 1:
+                    move_list.append(chr(ord(position[0]) + 1) + str(int(position[1]) + movement))
 
         if column != 'A':
-            if self.get_square_from_position(chr(ord(position[0]) - 1) + str(int(position[1]) + movement)).piece is not None:
-                if self.get_square_from_position(chr(ord(position[0]) - 1) + str(int(position[1]) + movement)).piece.piece_type != 'king':
+            if self.check_square_for_piece(chr(ord(position[0]) - 1) + str(int(position[1]) + movement)):
+                piece = self.get_square_from_position(chr(ord(position[0]) - 1) + str(int(position[1]) + movement)).piece
+                if piece.piece_type != 'king':
                     move_list.append(chr(ord(position[0]) - 1) + str(int(position[1]) + movement))
                 else:
-                    if self.get_square_from_position(chr(ord(position[0]) - 1) + str(int(position[1]) + movement)).piece.is_white != current_square.piece.is_white:
+                    if piece.is_white != current_square.piece.is_white:
                         move_list.append(chr(ord(position[0]) - 1) + str(int(position[1]) + movement))
 
-            if self.get_square_from_position(chr(ord(position[0]) - 1) + position[1]).piece is not None:
-                if self.get_square_from_position(chr(ord(position[0]) - 1) + position[1]).piece.piece_type == 'pawn':
-                    if self.get_square_from_position(chr(ord(position[0]) - 1) + position[1]).piece.is_white != current_square.piece.is_white:
-                        if self.get_square_from_position(chr(ord(position[0]) - 1) + position[1]).piece.turns_since_move == 1:
-                            if self.get_square_from_position(chr(ord(position[0]) - 1) + position[1]).piece.en_passant:
-                                move_list.append(chr(ord(position[0]) - 1) + str(int(position[1]) + movement))
+            if self.check_square_for_piece(chr(ord(position[0]) - 1) + position[1]):
+                piece = self.get_square_from_position(chr(ord(position[0]) - 1) + position[1]).piece
+                if piece.piece_type == 'pawn' and piece.en_passant and piece.turns_since_move == 1 and piece.is_white != current_square.piece.is_white:
+                    move_list.append(chr(ord(position[0]) - 1) + str(int(position[1]) + movement))
 
 
         return move_list
@@ -303,13 +301,7 @@ class Chessboard:
         return self.find_rook_moves(position) + self.find_bishop_moves(position)
 
     def check_if_in_check(self, is_white):
-        king_position = None
-        for row in self.chess_squares:
-            for square in row:
-                if square.piece:
-                    if square.piece.piece_type == 'king' and square.piece.is_white == is_white:
-                        king_position = square.position
-                        break
+        king_position = self.find_king_position(is_white)
         for row in self.chess_squares:
             for square in row:
                 if square.piece:
@@ -317,6 +309,13 @@ class Chessboard:
                         if king_position in square.piece.valid_moves:
                             return True, king_position
         return False, None
+
+    def find_king_position(self, is_white):
+        for row in self.chess_squares:
+            for square in row:
+                if square.piece:
+                    if square.piece.piece_type == 'king' and square.piece.is_white == is_white:
+                        return square.position
 
 
     def check_for_self_check(self, is_white, start_square, end_square):

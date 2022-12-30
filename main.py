@@ -1,5 +1,7 @@
+import sys
 import time
 
+import numpy as np
 import pygame
 
 from MinMaxAgent import MinMaxAgent
@@ -12,6 +14,7 @@ from Knight import Knight
 from Pawn import Pawn
 from Queen import Queen
 from Rook import Rook
+
 
 pygame.init()
 pygame.font.init()
@@ -93,9 +96,7 @@ def display_piece_moves(move_list: list):
             for square in row:
                 if square.position == move:
                     pygame.draw.circle(screen, MOVE_COLOUR, (square.x_pos + square.size/2, square.y_pos + square.size/2), 10)
-                    #redraw_surf = pygame.Surface((square.size, square.size))
-                    #redraw_surf.fill((0, 255, 0))
-                    #screen.blit(redraw_surf, (square.x_pos, square.y_pos))
+
     pygame.display.flip()
     pygame.display.update()
 
@@ -156,17 +157,15 @@ def play_move_sound():
 
 
 
-chess_squares = []
+chess_squares = np.zeros((8, 8), dtype=object)
 
 is_white = False
 for y in range(8):
-    chess_row = []
     is_white = not is_white
     for x in range(8):
         position = chr(x + 65) + str(8 - y)
-        chess_row.append(create_board_square(x, y, is_white, position))
+        chess_squares[y][x] = create_board_square(x, y, is_white, position)
         is_white = not is_white
-    chess_squares.append(chess_row)
 
 for row in chess_squares:
     for square in row:
@@ -234,7 +233,7 @@ first_clicked_square = None
 possible_moves = []
 white_turn = True
 computer_opponent_random = RandomAgent(chess_board, False)
-computer_opponent_minimax = MinMaxAgent(3, chess_board, False)
+computer_opponent_minimax = MinMaxAgent(2, chess_board, False)
 
 while True:
     for event in pygame.event.get():

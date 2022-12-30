@@ -32,5 +32,9 @@ class Pawn(AbstractPiece):
             self.turns_since_move = 0
             if int(new_position[1]) == 4 or int(new_position[1]) == 5:
                 self.en_passant = True
+        else:
+            self.turns_since_move = 0
+            self.en_passant = False
+
 
 
