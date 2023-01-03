@@ -68,18 +68,17 @@ def get_square_for_position(x, y):
 
 
 def redraw_board():
-    for row in chess_board.chess_squares:
-        for square in row:
-            redraw_surf = pygame.Surface((square.size, square.size))
+    for square in chess_board.chess_squares:
+        redraw_surf = pygame.Surface((square.size, square.size))
 
-            if square.is_white:
-                redraw_surf.fill(WHITE_SQUARE)
-            else:
-                redraw_surf.fill(BLACK_SQUARE)
+        if square.is_white:
+            redraw_surf.fill(WHITE_SQUARE)
+        else:
+            redraw_surf.fill(BLACK_SQUARE)
 
-            screen.blit(redraw_surf, (square.x_pos, square.y_pos))
-            if square.piece is not None:
-                screen.blit(piece_image(square), (square.x_pos, square.y_pos))
+        screen.blit(redraw_surf, (square.x_pos, square.y_pos))
+        if square.piece is not None:
+            screen.blit(piece_image(square), (square.x_pos, square.y_pos))
     in_check, position = chess_board.check_if_in_check(True)
     if in_check:
         display_check(position)
@@ -92,10 +91,9 @@ def redraw_board():
 
 def display_piece_moves(move_list: list):
     for move in move_list:
-        for row in chess_board.chess_squares:
-            for square in row:
-                if square.position == move:
-                    pygame.draw.circle(screen, MOVE_COLOUR, (square.x_pos + square.size/2, square.y_pos + square.size/2), 10)
+        for square in chess_board.chess_squares:
+            if square.position == move:
+                pygame.draw.circle(screen, MOVE_COLOUR, (square.x_pos + square.size/2, square.y_pos + square.size/2), 10)
 
     pygame.display.flip()
     pygame.display.update()
@@ -112,13 +110,12 @@ num_black_pieces = 16
 def count_pieces():
     white_pieces.clear()
     black_pieces.clear()
-    for row in chess_board.chess_squares:
-        for square in row:
-            if square.piece is not None:
-                if square.piece.is_white:
-                    white_pieces.append(square.piece)
-                else:
-                    black_pieces.append(square.piece)
+    for square in chess_board.chess_squares:
+        if square.piece is not None:
+            if square.piece.is_white:
+                white_pieces.append(square.piece)
+            else:
+                black_pieces.append(square.piece)
 # Checks if the game is over
 # Game is over when a side which is in check has no valid moves
 def check_for_game_over():
@@ -157,74 +154,73 @@ def play_move_sound():
 
 
 
-chess_squares = np.zeros((8, 8), dtype=object)
+chess_squares = np.zeros(64, dtype=object)
 
 is_white = False
 for y in range(8):
     is_white = not is_white
     for x in range(8):
         position = chr(x + 65) + str(8 - y)
-        chess_squares[y][x] = create_board_square(x, y, is_white, position)
+        chess_squares[y * 8 + x] = create_board_square(x, y, is_white, position)
         is_white = not is_white
 
-for row in chess_squares:
-    for square in row:
-        surf = pygame.Surface((square.size, square.size))
+for square in chess_squares:
+    surf = pygame.Surface((square.size, square.size))
 
-        if square.is_white:
-            surf.fill((240, 217, 181))
+    if square.is_white:
+        surf.fill((240, 217, 181))
+    else:
+        surf.fill((181, 136, 99))
+
+    rect = surf.get_rect()
+    screen.blit(surf, (square.x_pos, square.y_pos))
+    pygame.display.flip()
+
+    if square.position == 'A8' or square.position == 'H8':
+        square.piece = Rook(False)
+        screen.blit(piece_image(square), (square.x_pos, square.y_pos))
+    elif square.position == 'B8' or square.position == 'G8':
+        square.piece = Knight(False)
+        screen.blit(piece_image(square), (square.x_pos, square.y_pos))
+    elif square.position == 'C8' or square.position == 'F8':
+        square.piece = Bishop(False)
+        screen.blit(piece_image(square), (square.x_pos, square.y_pos))
+    elif square.position == 'D8':
+        square.piece = Queen(False)
+        screen.blit(piece_image(square), (square.x_pos, square.y_pos))
+    elif square.position == 'E8':
+        square.piece = King(False)
+        screen.blit(piece_image(square), (square.x_pos, square.y_pos))
+    elif "7" in square.position:
+        square.piece = Pawn(False)
+        screen.blit(piece_image(square), (square.x_pos, square.y_pos))
+    elif "2" in square.position:
+        square.piece = Pawn(True)
+        screen.blit(piece_image(square), (square.x_pos, square.y_pos))
+    elif square.position == 'A1' or square.position == 'H1':
+        square.piece = Rook(True)
+        screen.blit(piece_image(square), (square.x_pos, square.y_pos))
+    elif square.position == 'B1' or square.position == 'G1':
+        square.piece = Knight(True)
+        screen.blit(piece_image(square), (square.x_pos, square.y_pos))
+    elif square.position == 'C1' or square.position == 'F1':
+        square.piece = Bishop(True)
+        screen.blit(piece_image(square), (square.x_pos, square.y_pos))
+    elif square.position == 'D1':
+        square.piece = Queen(True)
+        screen.blit(piece_image(square), (square.x_pos, square.y_pos))
+    elif square.position == 'E1':
+        square.piece = King(True)
+        screen.blit(piece_image(square), (square.x_pos, square.y_pos))
+
+    if square.piece is not None:
+        if square.piece.is_white:
+            white_pieces.append(square.piece)
         else:
-            surf.fill((181, 136, 99))
-
-        rect = surf.get_rect()
-        screen.blit(surf, (square.x_pos, square.y_pos))
-        pygame.display.flip()
-
-        if square.position == 'A8' or square.position == 'H8':
-            square.piece = Rook(False)
-            screen.blit(piece_image(square), (square.x_pos, square.y_pos))
-        elif square.position == 'B8' or square.position == 'G8':
-            square.piece = Knight(False)
-            screen.blit(piece_image(square), (square.x_pos, square.y_pos))
-        elif square.position == 'C8' or square.position == 'F8':
-            square.piece = Bishop(False)
-            screen.blit(piece_image(square), (square.x_pos, square.y_pos))
-        elif square.position == 'D8':
-            square.piece = Queen(False)
-            screen.blit(piece_image(square), (square.x_pos, square.y_pos))
-        elif square.position == 'E8':
-            square.piece = King(False)
-            screen.blit(piece_image(square), (square.x_pos, square.y_pos))
-        elif "7" in square.position:
-            square.piece = Pawn(False)
-            screen.blit(piece_image(square), (square.x_pos, square.y_pos))
-        elif "2" in square.position:
-            square.piece = Pawn(True)
-            screen.blit(piece_image(square), (square.x_pos, square.y_pos))
-        elif square.position == 'A1' or square.position == 'H1':
-            square.piece = Rook(True)
-            screen.blit(piece_image(square), (square.x_pos, square.y_pos))
-        elif square.position == 'B1' or square.position == 'G1':
-            square.piece = Knight(True)
-            screen.blit(piece_image(square), (square.x_pos, square.y_pos))
-        elif square.position == 'C1' or square.position == 'F1':
-            square.piece = Bishop(True)
-            screen.blit(piece_image(square), (square.x_pos, square.y_pos))
-        elif square.position == 'D1':
-            square.piece = Queen(True)
-            screen.blit(piece_image(square), (square.x_pos, square.y_pos))
-        elif square.position == 'E1':
-            square.piece = King(True)
-            screen.blit(piece_image(square), (square.x_pos, square.y_pos))
-
-        if square.piece is not None:
-            if square.piece.is_white:
-                white_pieces.append(square.piece)
-            else:
-                black_pieces.append(square.piece)
+            black_pieces.append(square.piece)
 
 
-        pygame.display.flip()
+    pygame.display.flip()
 
 chess_board = Chessboard(chess_squares, True)
 chess_board.update_valid_moves()

@@ -13,11 +13,10 @@ class Chessboard:
         self.real_board = real_board
 
     def get_square_for_position(self, x, y):
-        for row in self.chess_squares:
-            if row[0].y_pos < y < row[0].y_pos + row[0].size:
-                for square in row:
-                    if square.x_pos < x < square.x_pos + square.size:
-                        return square
+        for square in self.chess_squares:
+            if square.y_pos < y < square.y_pos + square.size:
+                if square.x_pos < x < square.x_pos + square.size:
+                    return square
 
     def get_coordinates_from_position(self, position):
         square = self.get_square_from_position(position)
@@ -30,11 +29,10 @@ class Chessboard:
         self.selected_square = None
 
     def increment_piece_turns(self):
-        for row in self.chess_squares:
-            for square in row:
-                if square.piece is not None:
-                    if square.piece.has_moved:
-                        square.piece.turns_since_move += 1
+        for square in self.chess_squares:
+            if square.piece is not None:
+                if square.piece.has_moved:
+                    square.piece.turns_since_move += 1
 
 
     # TODO: Add possibility to promote to other pieces than queen
@@ -109,7 +107,7 @@ class Chessboard:
     def get_square_from_position(self, position:str):
         column = ord(position[0]) - 65
         row = 8 - int(position[1])
-        return self.chess_squares[row][column]
+        return self.chess_squares[column + row*8]
 
     def check_square_for_piece(self, position: str):
         square = self.get_square_from_position(position)
@@ -134,22 +132,20 @@ class Chessboard:
             return self.find_king_moves(position)
 
     def update_valid_moves(self):
-        for row in self.chess_squares:
-            for square in row:
-                if square.piece is not None:
-                    piece_type = square.piece.piece_type
-                    position = square.position
-                    square.piece.valid_moves = self.find_legal_moves_for_piece(piece_type, position)
+        for square in self.chess_squares:
+            if square.piece is not None:
+                piece_type = square.piece.piece_type
+                position = square.position
+                square.piece.valid_moves = self.find_legal_moves_for_piece(piece_type, position)
 
         if self.real_board:
-            for row in self.chess_squares:
-                for square in row:
-                    if square.piece is not None:
-                        legal_moves = []
-                        for move in square.piece.valid_moves:
-                            if not self.check_for_self_check(square.piece.is_white, square, self.get_square_from_position(move)):
-                                legal_moves.append(move)
-                        square.piece.valid_moves = legal_moves
+            for square in self.chess_squares:
+                if square.piece is not None:
+                    legal_moves = []
+                    for move in square.piece.valid_moves:
+                        if not self.check_for_self_check(square.piece.is_white, square, self.get_square_from_position(move)):
+                            legal_moves.append(move)
+                    square.piece.valid_moves = legal_moves
 
 
     def find_pawn_moves(self, position):
@@ -302,20 +298,18 @@ class Chessboard:
 
     def check_if_in_check(self, is_white):
         king_position = self.find_king_position(is_white)
-        for row in self.chess_squares:
-            for square in row:
-                if square.piece:
-                    if square.piece.is_white != is_white:
-                        if king_position in square.piece.valid_moves:
-                            return True, king_position
+        for square in self.chess_squares:
+            if square.piece:
+                if square.piece.is_white != is_white:
+                    if king_position in square.piece.valid_moves:
+                        return True, king_position
         return False, None
 
     def find_king_position(self, is_white):
-        for row in self.chess_squares:
-            for square in row:
-                if square.piece:
-                    if square.piece.piece_type == 'king' and square.piece.is_white == is_white:
-                        return square.position
+        for square in self.chess_squares:
+            if square.piece:
+                if square.piece.piece_type == 'king' and square.piece.is_white == is_white:
+                    return square.position
 
 
     def check_for_self_check(self, is_white, start_square, end_square):
