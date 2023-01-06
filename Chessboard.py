@@ -2,358 +2,427 @@ import copy
 import itertools
 import numpy as np
 from numpy import ndarray
+from dataclasses import dataclass
 
 from Queen import Queen
 
 
-class Chessboard:
-    def __init__(self, chess_squares: ndarray, real_board: bool):
-        self.chess_squares = chess_squares
-        self.selected_square = None
-        self.real_board = real_board
+MAILBOX = np.array([
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, 0, 1, 2, 3, 4, 5, 6, 7, -1,
+            -1, 8, 9, 10, 11, 12, 13, 14, 15, -1,
+            -1, 16, 17, 18, 19, 20, 21, 22, 23, -1,
+            -1, 24, 25, 26, 27, 28, 29, 30, 31, -1,
+            -1, 32, 33, 34, 35, 36, 37, 38, 39, -1,
+            -1, 40, 41, 42, 43, 44, 45, 46, 47, -1,
+            -1, 48, 49, 50, 51, 52, 53, 54, 55, -1,
+            -1, 56, 57, 58, 59, 60, 61, 62, 63, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1])
 
-    def get_square_for_position(self, x, y):
-        for square in self.chess_squares:
-            if square.y_pos < y < square.y_pos + square.size:
-                if square.x_pos < x < square.x_pos + square.size:
-                    return square
+MAILBOX64 = np.array([
+            21, 22, 23, 24, 25, 26, 27, 28,
+            31, 32, 33, 34, 35, 36, 37, 38,
+            41, 42, 43, 44, 45, 46, 47, 48,
+            51, 52, 53, 54, 55, 56, 57, 58,
+            61, 62, 63, 64, 65, 66, 67, 68,
+            71, 72, 73, 74, 75, 76, 77, 78,
+            81, 82, 83, 84, 85, 86, 87, 88,
+            91, 92, 93, 94, 95, 96, 97, 98])
+
+COLOUR64 = np.array([
+	1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1,
+	6, 6, 6, 6, 6, 6, 6, 6,
+	6, 6, 6, 6, 6, 6, 6, 6,
+	6, 6, 6, 6, 6, 6, 6, 6,
+	6, 6, 6, 6, 6, 6, 6, 6,
+	0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0])
+
+PIECES64 = np.array([
+	3, 1, 2, 4, 5, 2, 1, 3,
+	0, 0, 0, 0, 0, 0, 0, 0,
+	6, 6, 6, 6, 6, 6, 6, 6,
+	6, 6, 6, 6, 6, 6, 6, 6,
+	6, 6, 6, 6, 6, 6, 6, 6,
+	6, 6, 6, 6, 6, 6, 6, 6,
+	0, 0, 0, 0, 0, 0, 0, 0,
+	3, 1, 2, 4, 5, 2, 1, 3])
+
+LIGHT = 0
+DARK = 1
+
+
+
+PAWN = 0
+KNIGHT = 1
+BISHOP = 2
+ROOK = 3
+QUEEN = 4
+KING = 5
+EMPTY = 6
+
+A1 = 56
+B1 = 57
+C1 = 58
+D1 = 59
+E1 = 60
+F1 = 61
+G1 = 62
+H1 = 63
+
+A8 = 0
+B8 = 1
+C8 = 2
+D8 = 3
+E8 = 4
+F8 = 5
+G8 = 6
+H8 = 7
+
+
+SLIDE = np.array([0, 0, 1, 1, 1, 0])
+
+OFFSETS = np.array([0, 8, 4, 4, 8, 8])
+
+OFFSET = np.array([[0, 0, 0, 0, 0, 0, 0, 0],
+                   [-21, -19, -12, -8, 8, 12, 19, 21],
+                   [-11, -9, 9, 11, 0, 0, 0, 0],
+                   [-10, -1, 1, 10, 0, 0, 0, 0],
+                   [-11, -10, -9, -1, 1, 9, 10, 11],
+                   [-11, -10, -9, -1, 1, 9, 10, 11]])
+
+CASTLE_MASK = np.array([7, 15, 15, 15,  3, 15, 15, 11,
+	15, 15, 15, 15, 15, 15, 15, 15,
+	15, 15, 15, 15, 15, 15, 15, 15,
+	15, 15, 15, 15, 15, 15, 15, 15,
+	15, 15, 15, 15, 15, 15, 15, 15,
+	15, 15, 15, 15, 15, 15, 15, 15,
+	15, 15, 15, 15, 15, 15, 15, 15,
+	13, 15, 15, 15, 12, 15, 15, 14])
+
+@dataclass
+class Move:
+    move_from: int
+    move_to: int
+    bits: int
+    score: int = 0
+    promote: int = 0
+
+@dataclass
+class GameState:
+    move: Move
+    capture: int
+    capture_colour: int
+    castle: int
+    ep: int
+    move_list: list = None
+
+
+
+class Chessboard:
+
+
+
+    def __init__(self):
+
+        self.mailbox = MAILBOX
+        self.mailbox64 = MAILBOX64
+        self.colour = COLOUR64
+        self.pieces = PIECES64
+        self.ep = -1
+        self.castle = 15
+        self.side = LIGHT
+        self.white_king_pos = E1
+        self.black_king_pos = E8
+
+        self.current_available_moves = []
+        self.game_history = []
+
+    def row(self, square:int):
+        return np.right_shift(square, 3)
+
+    def col(self, square:int):
+        return np.bitwise_and(square, 7)
 
     def get_coordinates_from_position(self, position):
         square = self.get_square_from_position(position)
         return square.x_pos, square.y_pos
 
-    def select_square(self, square):
-        self.selected_square = square
+    def in_check(self, is_black:int):
+        for i in range(64):
+            if self.pieces[i] == KING and self.colour[i] == is_black:
+                return self.attack(i, not is_black)
+        return True
 
-    def deselect_square(self):
-        self.selected_square = None
-
-    def increment_piece_turns(self):
-        for square in self.chess_squares:
-            if square.piece is not None:
-                if square.piece.has_moved:
-                    square.piece.turns_since_move += 1
-
-
-    # TODO: Add possibility to promote to other pieces than queen
-    def move_piece(self, new_square_position):
-
-        new_square = self.get_square_from_position(new_square_position)
-        if new_square.position not in self.selected_square.piece.valid_moves:
-            self.selected_square = None
-            self.legal_moves = []
-            return False
-
-        else:
-            self.selected_square.piece.move(new_square_position)
-            # Castling
-            if self.selected_square.piece.piece_type == 'king':
-                if abs(ord(self.selected_square.position[0]) - ord(new_square_position[0])) == 2:
-                    if new_square_position[0] == 'G':
-                        self.get_square_from_position('H' + new_square_position[1]).piece.move('F' + new_square_position[1])
-                        self.get_square_from_position('F' + new_square_position[1]).piece = self.get_square_from_position('H' + new_square_position[1]).piece
-                        self.get_square_from_position('H' + new_square_position[1]).piece = None
-                        self.get_square_from_position('G' + new_square_position[1]).piece = self.selected_square.piece
+    def attack(self, square, is_black:bool):
+        for i in range(64):
+            if self.colour[i] == is_black:
+                if self.pieces[i] == PAWN:
+                    if not is_black:
+                        if self.col(i) != 0 and i-9 == square:
+                            return True
+                        if self.col(i) != 7 and i-7 == square:
+                            return True
                     else:
-                        self.get_square_from_position('A' + new_square_position[1]).piece.move('D' + new_square_position[1])
-                        self.get_square_from_position('D' + new_square_position[1]).piece = self.get_square_from_position('A' + new_square_position[1]).piece
-                        self.get_square_from_position('A' + new_square_position[1]).piece = None
-                        self.get_square_from_position('C' + new_square_position[1]).piece = self.selected_square.piece
-                    self.selected_square.piece = None
-                    self.selected_square = None
-                    self.update_valid_moves()
-                    self.increment_piece_turns()
-                    return True
-
-
-            elif self.selected_square.piece.piece_type == 'pawn':
-                if int(new_square_position[1]) == 1 or int(new_square_position[1]) == 8:
-                    self.get_square_from_position(new_square_position).piece = Queen(self.selected_square.piece.is_white)
-                    self.selected_square.piece = None
-                    self.selected_square = None
-                    self.update_valid_moves()
-                    self.increment_piece_turns()
-                    #self.update_valid_moves()
-                    #self.increment_piece_turns()
-                    return True
-                # En passant
-                if self.selected_square.position[0] != new_square_position[0]:
-                    if self.get_square_from_position(new_square_position).piece is None:
-                        movement = 0
-                        if self.selected_square.piece.is_white:
-                            movement = -1
-                        else:
-                            movement = 1
-                        self.get_square_from_position(new_square_position[0] + str(int(new_square_position[1]) + movement)).piece = None
-                        new_square.piece = self.selected_square.piece
-                        self.selected_square.piece = None
-                        self.selected_square = None
-                        self.update_valid_moves()
-                        self.increment_piece_turns()
-                        #self.update_valid_moves()
-                        #self.increment_piece_turns()
-                        return True
-
-
-            new_square.piece = self.selected_square.piece
-            self.selected_square.piece = None
-            self.selected_square = None
-            self.update_valid_moves()
-            self.increment_piece_turns()
-            #self.update_valid_moves()
-            #self.increment_piece_turns()
-            return True
-
-    def get_square_from_position(self, position:str):
-        column = ord(position[0]) - 65
-        row = 8 - int(position[1])
-        return self.chess_squares[column + row*8]
-
-    def check_square_for_piece(self, position: str):
-        square = self.get_square_from_position(position)
-        if square is None:
-            return False
-        if square.piece is not None:
-            return True
+                        if self.col(i) != 0 and i+7 == square:
+                            return True
+                        if self.col(i) != 7 and i+9 == square:
+                            return True
+                else:
+                    for j in range(OFFSETS[self.pieces[i]]):
+                        t = i
+                        while True:
+                            t = self.mailbox[self.mailbox64[t] + OFFSET[self.pieces[i]][j]]
+                            if t == -1:
+                                break
+                            if t == square:
+                                return True
+                            if self.pieces[t] != EMPTY:
+                                break
+                            if not SLIDE[self.pieces[i]]:
+                                break
         return False
 
-    def find_legal_moves_for_piece(self, piece_type:str, position:str):
-        if piece_type == 'pawn':
-            return self.find_pawn_moves(position)
-        elif piece_type == 'knight':
-            return self.find_knight_moves(position)
-        elif piece_type == 'rook':
-            return self.find_rook_moves(position)
-        elif piece_type == 'queen':
-            return self.find_queen_moves(position)
-        elif piece_type == 'bishop':
-            return self.find_bishop_moves(position)
-        else:
-            return self.find_king_moves(position)
-
-    def update_valid_moves(self):
-        for square in self.chess_squares:
-            if square.piece is not None:
-                piece_type = square.piece.piece_type
-                position = square.position
-                square.piece.valid_moves = self.find_legal_moves_for_piece(piece_type, position)
-
-        if self.real_board:
-            for square in self.chess_squares:
-                if square.piece is not None:
-                    legal_moves = []
-                    for move in square.piece.valid_moves:
-                        if not self.check_for_self_check(square.piece.is_white, square, self.get_square_from_position(move)):
-                            legal_moves.append(move)
-                    square.piece.valid_moves = legal_moves
-
-
-    def find_pawn_moves(self, position):
-        current_square = self.get_square_from_position(position)
-        if current_square.piece.is_white:
-            movement = 1
-        else:
-            movement = -1
-        column = position[0]
-        row = int(position[1])
-        move_list = []
-        if 1 < row < 8:
-            if not self.check_square_for_piece(position[0] + str(int(position[1]) + movement)):
-                move_list.append(position[0] + str(int(position[1]) + movement))
-        if current_square.piece.has_moved is False:
-            if not self.check_square_for_piece(position[0] + str(int(position[1]) + movement * 2)):
-                move_list.append(position[0] + str(int(position[1]) + movement * 2))
-
-        if column != 'H':
-            if self.check_square_for_piece(chr(ord(position[0]) + 1) + str(int(position[1]) + movement)):
-                if self.get_square_from_position(chr(ord(position[0]) + 1) + str(int(position[1]) + movement)).piece.piece_type != 'king':
-                    move_list.append(chr(ord(position[0]) + 1) + str(int(position[1]) + movement))
-                else:
-                    if self.get_square_from_position(chr(ord(position[0]) + 1) + str(int(position[1]) + movement)).piece.is_white != current_square.piece.is_white:
-                        move_list.append(chr(ord(position[0]) + 1) + str(int(position[1]) + movement))
-            if self.check_square_for_piece(chr(ord(position[0]) + 1) + position[1]):
-                piece = self.get_square_from_position(chr(ord(position[0]) + 1) + position[1]).piece
-                if piece.piece_type== 'pawn' and piece.en_passant and piece.is_white != current_square.piece.is_white and piece.turns_since_move == 1:
-                    move_list.append(chr(ord(position[0]) + 1) + str(int(position[1]) + movement))
-
-        if column != 'A':
-            if self.check_square_for_piece(chr(ord(position[0]) - 1) + str(int(position[1]) + movement)):
-                piece = self.get_square_from_position(chr(ord(position[0]) - 1) + str(int(position[1]) + movement)).piece
-                if piece.piece_type != 'king':
-                    move_list.append(chr(ord(position[0]) - 1) + str(int(position[1]) + movement))
-                else:
-                    if piece.is_white != current_square.piece.is_white:
-                        move_list.append(chr(ord(position[0]) - 1) + str(int(position[1]) + movement))
-
-            if self.check_square_for_piece(chr(ord(position[0]) - 1) + position[1]):
-                piece = self.get_square_from_position(chr(ord(position[0]) - 1) + position[1]).piece
-                if piece.piece_type == 'pawn' and piece.en_passant and piece.turns_since_move == 1 and piece.is_white != current_square.piece.is_white:
-                    move_list.append(chr(ord(position[0]) - 1) + str(int(position[1]) + movement))
-
-
-        return move_list
-
-    def find_knight_moves(self, position):
-        column = position[0]
-        row = int(position[1])
-        available_moves = []
-        final_moves = []
-        available_moves.append(chr(ord(column) + 1) + str(row + 2))
-        available_moves.append(chr(ord(column) + 1) + str(row - 2))
-        available_moves.append(chr(ord(column) - 1) + str(row + 2))
-        available_moves.append(chr(ord(column) - 1) + str(row - 2))
-        available_moves.append(chr(ord(column) + 2) + str(row + 1))
-        available_moves.append(chr(ord(column) + 2) + str(row - 1))
-        available_moves.append(chr(ord(column) - 2) + str(row + 1))
-        available_moves.append(chr(ord(column) - 2) + str(row - 1))
-        for move in available_moves:
-            if move[0] not in 'ABCDEFGH' or int(move[1:]) not in range(1, 9):
-                pass
-            else:
-                final_moves.append(move)
-        final_final_moves = []
-        for move in final_moves:
-            if self.check_square_for_piece(move):
-                if self.get_square_from_position(move).piece.piece_type == 'king':
-                    if self.get_square_from_position(move).piece.is_white == self.get_square_from_position(position).piece.is_white:
-                        continue
-            final_final_moves.append(move)
-        return final_final_moves
-
-    def find_rook_moves(self, position):
-        new_move_list = []
-        for i in range(int(position[1]) + 1, 9):
-            if not self.check_square_for_piece(position[0] + str(i)):
-                new_move_list.append(position[0] + str(i))
-            else:
-                if self.get_square_from_position(position[0] + str(i)).piece.piece_type != 'king':
-                    new_move_list.append(position[0] + str(i))
-                else:
-                    if self.get_square_from_position(position[0] + str(i)).piece.is_white != self.get_square_from_position(position).piece.is_white:
-                        new_move_list.append(position[0] + str(i))
-                break
-        for i in range(int(position[1]) - 1, 0, -1):
-            if not self.check_square_for_piece(position[0] + str(i)):
-                new_move_list.append(position[0] + str(i))
-            else:
-                if self.get_square_from_position(position[0] + str(i)).piece.piece_type != 'king':
-                    new_move_list.append(position[0] + str(i))
-                else:
-                    if self.get_square_from_position(position[0] + str(i)).piece.is_white != self.get_square_from_position(position).piece.is_white:
-                        new_move_list.append(position[0] + str(i))
-                break
-        for i in range(ord(position[0]) + 1, ord('H') + 1):
-            if not self.check_square_for_piece(chr(i) + position[1]):
-                new_move_list.append(chr(i) + position[1])
-            else:
-                if self.get_square_from_position(chr(i) + position[1]).piece.piece_type != 'king':
-                    new_move_list.append(chr(i) + position[1])
-                else:
-                    if self.get_square_from_position(chr(i) + position[1]).piece.is_white != self.get_square_from_position(position).piece.is_white:
-                        new_move_list.append(chr(i) + position[1])
-                break
-        for i in range(ord(position[0]) - 1, ord('A') - 1, -1):
-            if not self.check_square_for_piece(chr(i) + position[1]):
-                new_move_list.append(chr(i) + position[1])
-            else:
-                if self.get_square_from_position(chr(i) + position[1]).piece.piece_type != 'king':
-                    new_move_list.append(chr(i) + position[1])
-                else:
-                    if self.get_square_from_position(chr(i) + position[1]).piece.is_white != self.get_square_from_position(position).piece.is_white:
-                        new_move_list.append(chr(i) + position[1])
-                break
-        return new_move_list
-
-    def find_bishop_moves(self, position):
-
-        move_list = []
-        def bishop_moves(dx, dy):
-
-            for i in itertools.count(start=1):
-                newx = ord(position[0]) - 64 + dx * i
-                newy = int(position[1]) + dy * i
-
-                if 0 < newx <= 8 and 0 < newy <= 8:
-                    square = self.get_square_from_position(chr(newx + 64) + str(newy))
-                    if not self.check_square_for_piece(square.position):
-                        move_list.append(square.position)
+    def generate_moves(self):
+        king_pos = self.white_king_pos if self.side == LIGHT else self.black_king_pos
+        for i in range(64):
+            if self.colour[i] == self.side:
+                if self.pieces[i] == PAWN:
+                    if self.side == LIGHT:
+                        if self.col(i) != 0 and self.pieces[i-9] != EMPTY:
+                            if self.colour[i-9] == DARK or (self.colour[i-9] == LIGHT and self.pieces[i-9] != KING):
+                                self.add_move(i, i-9, 17)
+                        if self.col(i) != 7 and self.pieces[i-7] != EMPTY:
+                            if self.colour[i-7] == DARK or (self.colour[i-7] == LIGHT and self.pieces[i-7] != KING):
+                                self.add_move(i, i-7, 17)
+                        if self.pieces[i-8] == EMPTY:
+                            self.add_move(i, i-8, 16)
+                            if i >= 48 and self.pieces[i-16] == EMPTY:
+                                self.add_move(i, i-16, 24)
                     else:
-                        if square.piece.piece_type == 'king':
-                            if square.piece.is_white != self.get_square_from_position(position).piece.is_white:
-                                move_list.append(square.position)
-                            break
-                        move_list.append(square.position)
-                        break
+                        if self.col(i) != 0 and self.pieces[i+7] != EMPTY:
+                            if self.colour[i+7] == LIGHT or (self.colour[i+7] == DARK and self.pieces[i+7] != KING):
+                                self.add_move(i, i+7, 17)
+                        if self.col(i) != 7 and self.pieces[i+9] != EMPTY:
+                            if self.colour[i+9] == LIGHT or (self.colour[i+9] == DARK and self.pieces[i+9] != KING):
+                                self.add_move(i, i+9, 17)
+                        if self.pieces[i+8] == EMPTY:
+                            self.add_move(i, i+8, 16)
+                            if i <= 15 and self.pieces[i+16] == EMPTY:
+                                self.add_move(i, i+16, 24)
                 else:
-                    break
+                    for j in range(OFFSETS[self.pieces[i]]):
+                        t = i
+                        while True:
+                            t = self.mailbox[self.mailbox64[t] + OFFSET[self.pieces[i]][j]]
+                            if t == -1:
+                                break
+                            if self.pieces[t] != EMPTY:
+                                if self.colour[t] != self.side:
+                                    self.add_move(i, t, 1)
+                                else:
+                                    if self.pieces[t] != KING:
+                                        self.add_move(i, t, 64)
+                                break
+                            self.add_move(i, t, 0)
+                            if not SLIDE[self.pieces[i]]:
+                                break
+        if self.side == LIGHT:
+            if np.bitwise_and(self.castle, 1):
+                self.add_move(E1, G1, 2)
+            if np.bitwise_and(self.castle, 2):
+                self.add_move(E1, C1, 2)
+        else:
+            if np.bitwise_and(self.castle, 4):
+                self.add_move(E8, G8, 2)
+            if np.bitwise_and(self.castle, 8):
+                self.add_move(E8, C8, 2)
+        if self.ep != -1:
+            if self.side == LIGHT:
+                if self.col(self.ep) != 0 and self.colour[self.ep+7] == LIGHT and self.pieces[self.ep+7] == PAWN:
+                    self.add_move(self.ep+7, self.ep, 21)
+                if self.col(self.ep) != 7 and self.colour[self.ep+9] == LIGHT and self.pieces[self.ep+9] == PAWN:
+                    self.add_move(self.ep+9, self.ep, 21)
+            else:
+                if self.col(self.ep) != 0 and self.colour[self.ep-9] == DARK and self.pieces[self.ep-9] == PAWN:
+                    self.add_move(self.ep-9, self.ep, 21)
+                if self.col(self.ep) != 7 and self.colour[self.ep-7] == DARK and self.pieces[self.ep-7] == PAWN:
+                    self.add_move(self.ep-7, self.ep, 21)
 
-        for dx in (-1, 1):
-            for dy in (-1, 1):
-                bishop_moves(dx, dy)
+
+    def add_move(self, from_square, to_square, flag):
+
+        if np.bitwise_and(flag, 16):
+            if self.side == LIGHT:
+                if to_square <= H8:
+                    self.add_promote(from_square, to_square, flag)
+                    return
+            else:
+                if to_square >= A1:
+                    self.add_promote(from_square, to_square, flag)
+                    return
+        move = Move(from_square, to_square, flag)
+        if move.bits == 1:
+            move.score = 1
+        elif move.bits == 64:
+            move.score = -1
+        self.current_available_moves.append(move)
+
+    def add_promote(self, from_square, to_square, flag):
+        # TODO add promotin support for other pieces
+        move = Move(from_square, to_square, np.bitwise_or(flag, 32), QUEEN, QUEEN)
+        self.current_available_moves.append(move)
+
+    def make_move(self, move):
+        if np.bitwise_and(move.bits, 2):
+            if self.in_check(self.side):
+                return False
+            match move.move_to:
+                case 62:
+                    if self.colour[F1] != EMPTY or self.colour[G1] != EMPTY or self.attack(F1, not self.side) or self.attack(G1, not self.side):
+                        return False
+                    move_from = H1
+                    move_to = F1
+                case 58:
+                    if self.colour[B1] != EMPTY or self.colour[C1] != EMPTY or self.colour[D1] != EMPTY or self.attack(C1, not self.side) or self.attack(D1, not self.side):
+                        return False
+                    move_from = A1
+                    move_to = D1
+                case 6:
+                    if self.colour[F8] != EMPTY or self.colour[G8] != EMPTY or self.attack(F8, not self.side) or self.attack(G8, not self.side):
+                        return False
+                    move_from = H8
+                    move_to = F8
+                case 2:
+                    if self.colour[B8] != EMPTY or self.colour[C8] != EMPTY or self.colour[D8] != EMPTY or self.attack(C8, not self.side) or self.attack(D8, not self.side):
+                        return False
+                    move_from = A8
+                    move_to = D8
+                case _:
+                    move_from = -1
+                    move_to = -1
+            self.colour[move_to] = self.colour[move_from]
+            self.pieces[move_to] = self.pieces[move_from]
+            self.colour[move_from] = EMPTY
+            self.pieces[move_from] = EMPTY
+
+
+        game_state = GameState(move, self.pieces[move.move_to], self.colour[move.move_to], self.castle, self.ep, self.current_available_moves)
+        self.game_history.append(game_state)
+
+        self.current_available_moves = []
+
+
+        self.castle = np.bitwise_and(self.castle, np.bitwise_and(CASTLE_MASK[move.move_from], CASTLE_MASK[move.move_to]))
+
+        if np.bitwise_and(move.bits, 8):
+            if self.side == LIGHT:
+                self.ep = move.move_to + 8
+            else:
+                self.ep = move.move_to - 8
+        else:
+            self.ep = -1
+
+        self.colour[move.move_to] = self.side
+        if np.bitwise_and(move.bits, 32):
+            self.pieces[move.move_to] = move.promote
+        else:
+            self.pieces[move.move_to] = self.pieces[move.move_from]
+        self.colour[move.move_from] = EMPTY
+        self.pieces[move.move_from] = EMPTY
+
+        if np.bitwise_and(move.bits, 4):
+            if self.side == LIGHT:
+                self.colour[move.move_to+8] = EMPTY
+                self.pieces[move.move_to+8] = EMPTY
+            else:
+                self.colour[move.move_to-8] = EMPTY
+                self.pieces[move.move_to-8] = EMPTY
+
+        self.side = np.bitwise_xor(self.side, 1)
+        if self.in_check(not self.side):
+            self.takeback()
+            return False
+        return True
+
+    def takeback(self):
+
+        self.side = np.bitwise_xor(self.side, 1)
+        game_state = self.game_history.pop()
+        move = game_state.move
+        capture = game_state.capture
+        capture_colour = game_state.capture_colour
+        self.castle = game_state.castle
+        self.ep = game_state.ep
+        self.current_available_moves = game_state.move_list
+
+        self.colour[move.move_from] = self.side
+        if np.bitwise_and(move.bits, 32):
+            self.pieces[move.move_from] = PAWN
+        else:
+            self.pieces[move.move_from] = self.pieces[move.move_to]
+        if capture == EMPTY:
+            self.colour[move.move_to] = EMPTY
+            self.pieces[move.move_to] = EMPTY
+        else:
+            self.colour[move.move_to] = capture_colour
+            self.pieces[move.move_to] = capture
+
+        if np.bitwise_and(move.bits, 2):
+            match move.move_to:
+                case 62:
+                    move_from = F1
+                    move_to = H1
+                case 58:
+                    move_from = D1
+                    move_to = A1
+                case 6:
+                    move_from = F8
+                    move_to = H8
+                case 2:
+                    move_from = D8
+                    move_to = A8
+                case _:
+                    move_from = -1
+                    move_to = -1
+            self.colour[move_to] = self.side
+            self.pieces[move_to] = ROOK
+            self.colour[move_from] = EMPTY
+            self.pieces[move_from] = EMPTY
+
+        if np.bitwise_and(move.bits, 4):
+            if self.side == LIGHT:
+                self.colour[move.move_to+8] = np.bitwise_xor(self.side, 1)
+                self.pieces[move.move_to+8] = PAWN
+            else:
+                self.colour[move.move_to-8] = np.bitwise_xor(self.side, 1)
+                self.pieces[move.move_to-8] = PAWN
+
+    def share_moves(self):
+        move_list = []
+        for move in self.current_available_moves:
+            if self.make_move(move):
+                move_list.append(self.move_to_position(move))
+                self.takeback()
         return move_list
 
 
-    def find_queen_moves(self, position):
-        return self.find_rook_moves(position) + self.find_bishop_moves(position)
+    def find_position_from_bitboard(self, position:int):
+        column = chr(65 + (position % 8))
+        row = 8 - (position // 8)
+        return str(column) + str(row)
 
-    def check_if_in_check(self, is_white):
-        king_position = self.find_king_position(is_white)
-        for square in self.chess_squares:
-            if square.piece:
-                if square.piece.is_white != is_white:
-                    if king_position in square.piece.valid_moves:
-                        return True, king_position
-        return False, None
+    def move_to_position(self, move:Move):
+        from_position = self.find_position_from_bitboard(move.move_from)
+        to_position = self.find_position_from_bitboard(move.move_to)
+        return from_position + to_position
 
-    def find_king_position(self, is_white):
-        for square in self.chess_squares:
-            if square.piece:
-                if square.piece.piece_type == 'king' and square.piece.is_white == is_white:
-                    return square.position
-
-
-    def check_for_self_check(self, is_white, start_square, end_square):
-        copied_list = copy.deepcopy(self.chess_squares)
-        new_board = Chessboard(copied_list, False)
-        new_board.select_square(new_board.get_square_from_position(start_square.position))
-        new_board.move_piece(end_square.position)
-        in_check = new_board.check_if_in_check(is_white)[0]
-        return in_check
-
-
-    def find_king_moves(self, position):
-        column = position[0]
-        row = int(position[1])
-        available_moves = []
-        king = self.get_square_from_position(position).piece
-        # Check if king can castle
-        if not king.has_moved:
-            if not self.check_if_in_check(king.is_white)[0]:
-                if self.check_square_for_piece('A' + str(row)):
-                    rook_square = self.get_square_from_position('A' + str(row))
-                    if rook_square.piece.piece_type == 'rook':
-                        if not rook_square.piece.has_moved:
-                            if not self.check_square_for_piece('B' + str(row)) and not self.check_square_for_piece('C' + str(row)) and not self.check_square_for_piece('D' + str(row)):
-                                if not self.check_for_self_check(king.is_white, self.get_square_from_position(position), self.get_square_from_position('C' + str(row))) and not self.check_for_self_check(king.is_white, self.get_square_from_position(position), self.get_square_from_position('D' + str(row))):
-                                    available_moves.append('C' + str(row))
-                if self.check_square_for_piece('H' + str(row)):
-                    rook_square = self.get_square_from_position('H' + str(row))
-                    if rook_square.piece.piece_type == 'rook':
-                        if not rook_square.piece.has_moved:
-                            if not self.check_square_for_piece('F' + str(row)) and not self.check_square_for_piece('G' + str(row)):
-                                if not self.check_for_self_check(king.is_white, self.get_square_from_position(position), self.get_square_from_position('F' + str(row))) and not self.check_for_self_check(king.is_white, self.get_square_from_position(position), self.get_square_from_position('G' + str(row))):
-                                    available_moves.append('G' + str(row))
-
-
-        for i in range(3):
-            for j in range(3):
-                available_moves.append(chr(ord(column) + i - 1) + str(row + j - 1))
-        available_moves.remove(position)
-        final_moves = []
-        for move in available_moves:
-            if move[0] not in 'ABCDEFGH' or move[1] not in '12345678':
-                continue
-            else:
-                final_moves.append(move)
-        return final_moves
+    def human_move_piece(self, start_pos, end_pos):
+        for move in self.current_available_moves:
+            if self.move_to_position(move) == start_pos + end_pos:
+                self.make_move(move)
+                break
 
