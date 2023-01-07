@@ -3,9 +3,10 @@ import itertools
 import numpy as np
 from numpy import ndarray
 from dataclasses import dataclass
+from operator import attrgetter
 
 from Queen import Queen
-
+from TransTable import TransTable
 
 MAILBOX = np.array([
             -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
@@ -118,13 +119,12 @@ class GameState:
     capture_colour: int
     castle: int
     ep: int
+    hash: int
     move_list: list = None
 
 
-
+# TODO: Add check for checkmate and stalemate
 class Chessboard:
-
-
 
     def __init__(self):
 
@@ -137,6 +137,8 @@ class Chessboard:
         self.side = LIGHT
         self.white_king_pos = E1
         self.black_king_pos = E8
+        self.trans_table = TransTable()
+        self.hash = self.trans_table.hash(self.side, self.pieces, self.colour, self.ep)
 
         self.current_available_moves = []
         self.game_history = []
@@ -266,13 +268,13 @@ class Chessboard:
                     return
         move = Move(from_square, to_square, flag)
         if move.bits == 1:
-            move.score = 1
+            move.score = 1000 + (self.pieces[to_square] * 10 - self.pieces[from_square])
         elif move.bits == 64:
             move.score = -1
         self.current_available_moves.append(move)
 
     def add_promote(self, from_square, to_square, flag):
-        # TODO add promotin support for other pieces
+        # TODO add promotion support for other pieces
         move = Move(from_square, to_square, np.bitwise_or(flag, 32), QUEEN, QUEEN)
         self.current_available_moves.append(move)
 
@@ -310,7 +312,7 @@ class Chessboard:
             self.pieces[move_from] = EMPTY
 
 
-        game_state = GameState(move, self.pieces[move.move_to], self.colour[move.move_to], self.castle, self.ep, self.current_available_moves)
+        game_state = GameState(move, self.pieces[move.move_to], self.colour[move.move_to], self.castle, self.ep, self.hash, self.current_available_moves)
         self.game_history.append(game_state)
 
         self.current_available_moves = []
@@ -346,6 +348,7 @@ class Chessboard:
         if self.in_check(not self.side):
             self.takeback()
             return False
+        self.hash = self.trans_table.hash(self.side, self.pieces, self.colour, self.ep)
         return True
 
     def takeback(self):
@@ -357,6 +360,7 @@ class Chessboard:
         capture_colour = game_state.capture_colour
         self.castle = game_state.castle
         self.ep = game_state.ep
+        self.hash = game_state.hash
         self.current_available_moves = game_state.move_list
 
         self.colour[move.move_from] = self.side
@@ -400,6 +404,9 @@ class Chessboard:
             else:
                 self.colour[move.move_to-8] = np.bitwise_xor(self.side, 1)
                 self.pieces[move.move_to-8] = PAWN
+
+    def sort_moves(self):
+        self.current_available_moves.sort(key=attrgetter('score'), reverse=True)
 
     def share_moves(self):
         move_list = []
