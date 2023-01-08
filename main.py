@@ -5,7 +5,7 @@ import numpy as np
 import pygame
 
 from DisplayBoard import DisplayBoard
-from MinMaxAgent import MinMaxAgent
+from NegaMaxAgent import NegaMaxAgent
 from RandomAgent import RandomAgent
 from Bishop import Bishop
 from BoardSquare import BoardSquare
@@ -102,7 +102,7 @@ first_clicked_square = None
 possible_moves = []
 white_turn = True
 #computer_opponent_random = RandomAgent(chess_board, False)
-computer_opponent_minimax = MinMaxAgent(6, chess_board, False)
+computer_opponent_minimax = NegaMaxAgent(6, chess_board, False)
 
 while True:
     for event in pygame.event.get():

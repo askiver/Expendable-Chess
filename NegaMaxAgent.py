@@ -95,10 +95,11 @@ class TableEntry:
     move:Move
     evaluation_score:int
     hash: int
+    flag:int
     search_depth: int = np.inf
 
 # TODO Add checkmate condition into heuristic function
-class MinMaxAgent:
+class NegaMaxAgent:
     def __init__(self, depth, chess_board, is_white):
         self.search_depth = depth
         self.chess_board = chess_board
@@ -108,7 +109,7 @@ class MinMaxAgent:
 
     def get_move(self):
         self.nodes_expanded = 0
-        value = self.minimax(self.search_depth, self.chess_board, self.is_white, -np.inf, np.inf)
+        value = self.negamax(self.search_depth, -np.inf, np.inf, -1)
         print("value associated with move: ", value[0])
         print("nodes expanded: ", self.nodes_expanded)
         return value[1]
@@ -170,56 +171,52 @@ class MinMaxAgent:
             elif colour_bitboard[i] == 1:
                 value -= self.piece_value(piece_bitboard[i])
             value += self.piece_position_value(piece_bitboard[i], i, colour_bitboard[i])
-        return np.array([value, None])
+        return value
 
-    def minimax(self, depth, board, is_white, alpha , beta):
+    def negamax(self, depth, alpha, beta, colour):
         self.nodes_expanded += 1
-
-        if not depth:
-            return self.heuristic()
+        original_alpha = alpha
 
         table_entry = self.transposition_table[self.chess_board.hash % hash_table_size]
 
-        if table_entry != 0 and table_entry.search_depth < depth and table_entry.hash == self.chess_board.hash:
-            return np.array([table_entry.evaluation_score, table_entry.move])
+        if table_entry != 0 and table_entry.hash == self.chess_board.hash and table_entry.search_depth >= depth:
+            if table_entry.flag == 0:
+                return np.array([table_entry.evaluation_score, table_entry.move])
+            elif table_entry.flag == -1:
+                alpha = max(alpha, table_entry.evaluation_score)
+            elif table_entry.flag == 1:
+                beta = min(beta, table_entry.evaluation_score)
+            if alpha >= beta:
+                return np.array([table_entry.evaluation_score, table_entry.move])
 
-        if is_white:
-            value = np.array([-np.inf, None])
-            self.chess_board.generate_moves()
-            self.chess_board.sort_moves()
-            for move in self.chess_board.current_available_moves:
-                if self.chess_board.make_move(move):
-                    new_value = self.minimax(depth - 1, self.chess_board, False,  alpha, beta)[0]
-                    self.chess_board.takeback()
-                    if table_entry == 0 or table_entry.evaluation_score < new_value:
-                        self.transposition_table[self.chess_board.hash % hash_table_size] = TableEntry(move, new_value, self.chess_board.hash, depth-1)
+        # TODO: add checkmate condition
+        if depth == 0:
+            return np.array([colour * self.heuristic()])
 
-                    if new_value > value[0]:
-                        value[0] = new_value
-                        value[1] = move
+        value = np.array([-np.inf, None])
+        self.chess_board.generate_moves()
+        self.chess_board.sort_moves()
+        for move in self.chess_board.current_available_moves:
+            # TODO optimize move generation to only generate moves that are legal
+            if self.chess_board.make_move(move):
+                new_value = -self.negamax(depth - 1, -beta, -alpha, -colour)[0]
+                self.chess_board.takeback()
 
-                    if value[0] >= beta:
-                        return value
-                    alpha = max(alpha, value[0])
-            return value
+                if new_value > value[0]:
+                    value[0] = new_value
+                    value[1] = move
+
+                alpha = max(alpha, new_value)
+
+                if alpha >= beta:
+                    break
+
+        # TODO Might cause bugs when move is None
+        if value[0] <= original_alpha:
+            self.transposition_table[self.chess_board.hash % hash_table_size] = TableEntry(value[1], value[0], self.chess_board.hash, 1, depth)
+        elif value[0] >= beta:
+            self.transposition_table[self.chess_board.hash % hash_table_size] = TableEntry(value[1], value[0], self.chess_board.hash, -1, depth)
         else:
-            value = np.array([np.inf, None])
-            self.chess_board.generate_moves()
-            self.chess_board.sort_moves()
-            for move in self.chess_board.current_available_moves:
-                if self.chess_board.make_move(move):
-                    new_value = self.minimax(depth - 1, self.chess_board, True, alpha, beta)[0]
-                    self.chess_board.takeback()
-                    if table_entry == 0 or table_entry.evaluation_score > new_value:
-                        self.transposition_table[self.chess_board.hash % hash_table_size] = TableEntry(move,new_value,self.chess_board.hash,depth-1)
+            self.transposition_table[self.chess_board.hash % hash_table_size] = TableEntry(value[1], value[0], self.chess_board.hash, 0, depth)
 
-                    if new_value < value[0]:
-                        value[0] = new_value
-                        value[1] = move
-
-                    if value[0] <= alpha:
-                        return value
-                    beta = min(beta, value[0])
-            return value
-
-
+        return value
