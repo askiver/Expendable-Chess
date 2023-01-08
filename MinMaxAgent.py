@@ -104,10 +104,13 @@ class MinMaxAgent:
         self.chess_board = chess_board
         self.is_white = is_white
         self.transposition_table = np.zeros(shape=hash_table_size, dtype=TableEntry)
+        self.nodes_expanded = 0
 
     def get_move(self):
+        self.nodes_expanded = 0
         value = self.minimax(self.search_depth, self.chess_board, self.is_white, -np.inf, np.inf)
         print("value associated with move: ", value[0])
+        print("nodes expanded: ", self.nodes_expanded)
         return value[1]
 
     def piece_value(self, piece:int):
@@ -170,6 +173,7 @@ class MinMaxAgent:
         return np.array([value, None])
 
     def minimax(self, depth, board, is_white, alpha , beta):
+        self.nodes_expanded += 1
 
         if not depth:
             return self.heuristic()
