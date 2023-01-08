@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from Chessboard import Chessboard, Move
+from Chessboard import Move
 
 #define DOUBLED_PAWN_PENALTY		10
 #define ISOLATED_PAWN_PENALTY		20
@@ -106,10 +106,20 @@ class NegaMaxAgent:
         self.is_white = is_white
         self.transposition_table = np.zeros(shape=hash_table_size, dtype=TableEntry)
         self.nodes_expanded = 0
+        self.best_evaluation = -np.inf
 
     def get_move(self):
         self.nodes_expanded = 0
-        value = self.negamax(self.search_depth, -np.inf, np.inf, -1)
+        value = self.negamax(1, -np.inf, np.inf, -1)
+        window_size = 100
+        # Iterative deepening with aspiration window
+        for i in range(2, self.search_depth + 1):
+            alpha = self.best_evaluation - window_size
+            beta = self.best_evaluation + window_size
+            value = self.negamax(self.search_depth, alpha, beta, -1)
+            if value[0] <= alpha or value[0] >= beta:
+                value = self.negamax(self.search_depth, -np.inf, np.inf, -1)
+
         print("value associated with move: ", value[0])
         print("nodes expanded: ", self.nodes_expanded)
         return value[1]
@@ -207,6 +217,7 @@ class NegaMaxAgent:
                     value[1] = move
 
                 alpha = max(alpha, new_value)
+                self.best_evaluation = max(self.best_evaluation, alpha)
 
                 if alpha >= beta:
                     break
