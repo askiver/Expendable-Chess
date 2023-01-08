@@ -405,8 +405,15 @@ class Chessboard:
                 self.colour[move.move_to-8] = np.bitwise_xor(self.side, 1)
                 self.pieces[move.move_to-8] = PAWN
 
-    def sort_moves(self):
+    # Finds move in the list and places it at the front
+    def sort_moves(self, move:Move = None):
         self.current_available_moves.sort(key=attrgetter('score'), reverse=True)
+        if move is not None:
+            for i in range(len(self.current_available_moves)):
+                if self.current_available_moves[i] == move:
+                    self.current_available_moves.insert(0, self.current_available_moves.pop(i))
+                    break
+
 
     def share_moves(self):
         move_list = []

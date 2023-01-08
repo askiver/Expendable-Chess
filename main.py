@@ -102,7 +102,7 @@ first_clicked_square = None
 possible_moves = []
 white_turn = True
 #computer_opponent_random = RandomAgent(chess_board, False)
-computer_opponent_minimax = NegaMaxAgent(4, chess_board, False)
+computer_opponent_minimax = NegaMaxAgent(6, chess_board, False)
 
 while True:
     for event in pygame.event.get():

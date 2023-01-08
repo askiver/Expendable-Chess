@@ -107,12 +107,14 @@ class NegaMaxAgent:
         self.transposition_table = np.zeros(shape=hash_table_size, dtype=TableEntry)
         self.nodes_expanded = 0
         self.best_evaluation = -np.inf
+        self.pv_moves = np.zeros(shape=depth-1, dtype=Move)
 
     def get_move(self):
         self.nodes_expanded = 0
         value = self.negamax(1, -np.inf, np.inf, -1)
         window_size = 100
         # Iterative deepening with aspiration window
+        # TODO: implement dynamic window size whenever new search is needed
         for i in range(2, self.search_depth + 1):
             alpha = self.best_evaluation - window_size
             beta = self.best_evaluation + window_size
@@ -205,19 +207,34 @@ class NegaMaxAgent:
 
         value = np.array([-np.inf, None])
         self.chess_board.generate_moves()
-        self.chess_board.sort_moves()
+        if depth > 1:
+            self.chess_board.sort_moves(self.pv_moves[depth-2])
+        else:
+            self.chess_board.sort_moves(None)
         for move in self.chess_board.current_available_moves:
             # TODO optimize move generation to only generate moves that are legal
             if self.chess_board.make_move(move):
-                new_value = -self.negamax(depth - 1, -beta, -alpha, -colour)[0]
+                if move == self.pv_moves[depth-2]:
+                    new_value = -self.negamax(depth-1, -beta, -alpha, -colour)[0]
+                else:
+                    # null window search
+                    new_value = -self.negamax(depth-1, -alpha-1, -alpha, -colour)[0]
+                    if alpha < new_value < beta:
+                        new_value = -self.negamax(depth-1, -beta, -alpha, -colour)[0]
+
+                #new_value = -self.negamax(depth - 1, -beta, -alpha, -colour)[0]
                 self.chess_board.takeback()
 
                 if new_value > value[0]:
                     value[0] = new_value
                     value[1] = move
 
-                alpha = max(alpha, new_value)
-                self.best_evaluation = max(self.best_evaluation, alpha)
+                if alpha < new_value:
+                    alpha = new_value
+                    self.best_evaluation = max(self.best_evaluation, alpha)
+                    self.pv_moves[depth-2] = move
+
+
 
                 if alpha >= beta:
                     break
