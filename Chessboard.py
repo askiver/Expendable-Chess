@@ -5,7 +5,6 @@ from numpy import ndarray
 from dataclasses import dataclass
 from operator import attrgetter
 
-from chess_pieces.Queen import Queen
 from TransTable import TransTable
 
 MAILBOX = np.array([
