@@ -3,13 +3,13 @@ import copy
 import numpy as np
 import pygame
 
-from Bishop import Bishop
 from BoardSquare import BoardSquare
-from King import King
-from Knight import Knight
-from Pawn import Pawn
-from Queen import Queen
-from Rook import Rook
+from chess_pieces.Bishop import Bishop
+from chess_pieces.King import King
+from chess_pieces.Knight import Knight
+from chess_pieces.Pawn import Pawn
+from chess_pieces.Queen import Queen
+from chess_pieces.Rook import Rook
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 800
@@ -20,7 +20,7 @@ pygame.mixer.init()
 
 move_sound = pygame.mixer.Sound("sounds/move.mp3")
 capture_sound = pygame.mixer.Sound('sounds/capture.mp3')
-#game_over_sound = pygame.mixer.Sound('sounds/game_over.mp3')
+game_over_sound = pygame.mixer.Sound('sounds/game_over.mp3')
 
 
 def create_board_square(x_array, y_array, chess_colour, position):
@@ -57,6 +57,7 @@ class DisplayBoard:
                 position = chr(x + 65) + str(8 - y)
                 self.chess_squares[y * 8 + x] = create_board_square(x, y, is_white, position)
                 is_white = not is_white
+        
 
         for square in self.chess_squares:
 
