@@ -8,9 +8,9 @@ class TransTable:
     def __init__(self):
         random.seed(time.time())
 
-        self.hash_table = np.zeros(shape=(2,6,64), dtype=np.int32)
+        self.hash_table = np.zeros(shape=(2,6,64), dtype=np.int64)
         self.hash_side = self.random_hash()
-        self.hash_ep = np.zeros(64, dtype=np.int32)
+        self.hash_ep = np.zeros(64, dtype=np.int64)
 
         for i in range(2):
             for j in range(6):

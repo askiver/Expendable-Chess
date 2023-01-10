@@ -109,6 +109,8 @@ class NegaMaxAgent:
         self.best_evaluation = -np.inf
         self.pv_moves = np.zeros(shape=depth-1, dtype=Move)
 
+    #def quiescent_search(self, alpha, beta, depth):
+
     def get_move(self):
         self.nodes_expanded = 0
         value = self.negamax(1, -np.inf, np.inf, -1)

@@ -189,7 +189,7 @@ class Chessboard:
         return False
 
     def generate_moves(self):
-        king_pos = self.white_king_pos if self.side == LIGHT else self.black_king_pos
+        #king_pos = self.white_king_pos if self.side == LIGHT else self.black_king_pos
         for i in range(64):
             if self.colour[i] == self.side:
                 if self.pieces[i] == PAWN:
@@ -242,6 +242,50 @@ class Chessboard:
                 self.add_move(E8, G8, 2)
             if np.bitwise_and(self.castle, 8):
                 self.add_move(E8, C8, 2)
+        if self.ep != -1:
+            if self.side == LIGHT:
+                if self.col(self.ep) != 0 and self.colour[self.ep+7] == LIGHT and self.pieces[self.ep+7] == PAWN:
+                    self.add_move(self.ep+7, self.ep, 21)
+                if self.col(self.ep) != 7 and self.colour[self.ep+9] == LIGHT and self.pieces[self.ep+9] == PAWN:
+                    self.add_move(self.ep+9, self.ep, 21)
+            else:
+                if self.col(self.ep) != 0 and self.colour[self.ep-9] == DARK and self.pieces[self.ep-9] == PAWN:
+                    self.add_move(self.ep-9, self.ep, 21)
+                if self.col(self.ep) != 7 and self.colour[self.ep-7] == DARK and self.pieces[self.ep-7] == PAWN:
+                    self.add_move(self.ep-7, self.ep, 21)
+
+    def generate_captures_and_promotions(self):
+        for i in range(64):
+            if self.colour[i] == self.side:
+                if self.pieces[i] == PAWN:
+                    if self.side == LIGHT:
+                        if self.col(i) != 0 and self.colour[i-9] == DARK:
+                            self.add_move(i, i-9, 17)
+                        if self.col(i) != 7 and self.colour[i-7] == DARK:
+                            self.add_move(i, i-7, 17)
+                        if i <= 15 and self.colour[i-8] == EMPTY:
+                            self.add_move(i, i-8, 16)
+
+                    else:
+                        if self.col(i) != 0 and self.colour[i+7] == LIGHT:
+                            self.add_move(i, i+7, 17)
+                        if self.col(i) != 7 and self.colour[i+9] == LIGHT:
+                            self.add_move(i, i+9, 17)
+                        if i >= 48 and self.colour[i+8] == EMPTY:
+                            self.add_move(i, i+8, 16)
+                else:
+                    for j in range(OFFSETS[self.pieces[i]]):
+                        t = i
+                        while True:
+                            t = self.mailbox[self.mailbox64[t] + OFFSET[self.pieces[i]][j]]
+                            if t == -1:
+                                break
+                            if self.colour[t] != EMPTY:
+                                if self.colour[t] != self.side:
+                                    self.add_move(i, t, 1)
+                                break
+                            if not SLIDE[self.pieces[i]]:
+                                break
         if self.ep != -1:
             if self.side == LIGHT:
                 if self.col(self.ep) != 0 and self.colour[self.ep+7] == LIGHT and self.pieces[self.ep+7] == PAWN:

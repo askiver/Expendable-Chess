@@ -24,7 +24,7 @@ pygame.mixer.init()
 
 move_sound = pygame.mixer.Sound("sounds/move.mp3")
 capture_sound = pygame.mixer.Sound('sounds/capture.mp3')
-game_over_sound = pygame.mixer.Sound('sounds/game_over.mp3')
+#game_over_sound = pygame.mixer.Sound('sounds/game_over.mp3')
 
 
 SCREEN_WIDTH = 800
@@ -102,7 +102,7 @@ first_clicked_square = None
 possible_moves = []
 white_turn = True
 #computer_opponent_random = RandomAgent(chess_board, False)
-computer_opponent_minimax = NegaMaxAgent(6, chess_board, False)
+computer_opponent_minimax = NegaMaxAgent(4, chess_board, False)
 
 while True:
     for event in pygame.event.get():

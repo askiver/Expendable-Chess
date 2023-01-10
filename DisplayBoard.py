@@ -20,7 +20,7 @@ pygame.mixer.init()
 
 move_sound = pygame.mixer.Sound("sounds/move.mp3")
 capture_sound = pygame.mixer.Sound('sounds/capture.mp3')
-game_over_sound = pygame.mixer.Sound('sounds/game_over.mp3')
+#game_over_sound = pygame.mixer.Sound('sounds/game_over.mp3')
 
 
 def create_board_square(x_array, y_array, chess_colour, position):
