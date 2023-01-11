@@ -106,23 +106,24 @@ class NegaMaxAgent:
         self.is_white = is_white
         self.transposition_table = np.zeros(shape=hash_table_size, dtype=TableEntry)
         self.nodes_expanded = 0
-        self.best_evaluation = -np.inf
         self.pv_moves = np.zeros(shape=depth-1, dtype=Move)
-
-    #def quiescent_search(self, alpha, beta, depth):
 
     def get_move(self):
         self.nodes_expanded = 0
-        value = self.negamax(1, -np.inf, np.inf, -1)
-        window_size = 100
+        #value = self.initial_search()
+        value = self.initial_search()
+        window_size = 50
         # Iterative deepening with aspiration window
         # TODO: implement dynamic window size whenever new search is needed
-        for i in range(2, self.search_depth + 1):
-            alpha = self.best_evaluation - window_size
-            beta = self.best_evaluation + window_size
-            value = self.negamax(self.search_depth, alpha, beta, -1)
+        for i in range(3, self.search_depth + 1):
+            print(value[0])
+            alpha = value[0] - window_size
+            beta = value[0] + window_size
+            value = self.negamax(i, alpha, beta, -1, True)
+            print(value[0])
             if value[0] <= alpha or value[0] >= beta:
-                value = self.negamax(self.search_depth, -np.inf, np.inf, -1)
+                value = self.negamax(i, -np.inf, np.inf, -1, False)
+                print(value[0])
 
         print("value associated with move: ", value[0])
         print("nodes expanded: ", self.nodes_expanded)
@@ -187,7 +188,12 @@ class NegaMaxAgent:
             value += self.piece_position_value(piece_bitboard[i], i, colour_bitboard[i])
         return value
 
-    def negamax(self, depth, alpha, beta, colour):
+    def negamax(self, depth, alpha, beta, colour, null_search:bool):
+        # TODO: add checkmate condition
+        if depth == 0:
+            # return np.array([self.quiescent_search(alpha, beta, colour)])
+            return np.array([self.quiescent_search(alpha, beta, colour)])
+
         self.nodes_expanded += 1
         original_alpha = alpha
 
@@ -203,12 +209,8 @@ class NegaMaxAgent:
             if alpha >= beta:
                 return np.array([table_entry.evaluation_score, table_entry.move])
 
-        # TODO: add checkmate condition
-        if depth == 0:
-            return np.array([colour * self.heuristic()])
-
-        value = np.array([-np.inf, None])
         self.chess_board.generate_moves()
+        value = np.array([-np.inf, self.chess_board.current_available_moves[0]])
         if depth > 1:
             self.chess_board.sort_moves(self.pv_moves[depth-2])
         else:
@@ -217,36 +219,92 @@ class NegaMaxAgent:
             # TODO optimize move generation to only generate moves that are legal
             if self.chess_board.make_move(move):
                 if move == self.pv_moves[depth-2]:
-                    new_value = -self.negamax(depth-1, -beta, -alpha, -colour)[0]
-                else:
+                    new_value = -self.negamax(depth-1, -beta, -alpha, -colour, null_search)[0]
+                elif null_search:
                     # null window search
-                    new_value = -self.negamax(depth-1, -alpha-1, -alpha, -colour)[0]
+                    new_value = -self.negamax(depth-1, -alpha-1, -alpha, -colour, null_search)[0]
                     if alpha < new_value < beta:
-                        new_value = -self.negamax(depth-1, -beta, -alpha, -colour)[0]
+                        new_value = -self.negamax(depth-1, -beta, -alpha, -colour, null_search)[0]
+                else:
+                    new_value = -self.negamax(depth-1, -beta, -alpha, -colour, null_search)[0]
 
                 #new_value = -self.negamax(depth - 1, -beta, -alpha, -colour)[0]
                 self.chess_board.takeback()
 
-                if new_value > value[0]:
+                if new_value >= beta:
+                    self.transposition_table[self.chess_board.hash % hash_table_size] = TableEntry(move, new_value,self.chess_board.hash, -1, depth)
+                    return np.array([beta, move]) # beta instead of new_value?
+
+                if new_value > alpha:
+                    alpha = new_value
+                    value[0] = alpha
+                    value[1] = move
+                    if depth > 1:
+                        self.pv_moves[depth - 2] = move
+
+                elif new_value > value[0]:
                     value[0] = new_value
                     value[1] = move
-
-                if alpha < new_value:
-                    alpha = new_value
-                    self.best_evaluation = max(self.best_evaluation, alpha)
-                    self.pv_moves[depth-2] = move
-
-
-
-                if alpha >= beta:
-                    break
 
         # TODO Might cause bugs when move is None
         if value[0] <= original_alpha:
             self.transposition_table[self.chess_board.hash % hash_table_size] = TableEntry(value[1], value[0], self.chess_board.hash, 1, depth)
-        elif value[0] >= beta:
-            self.transposition_table[self.chess_board.hash % hash_table_size] = TableEntry(value[1], value[0], self.chess_board.hash, -1, depth)
         else:
             self.transposition_table[self.chess_board.hash % hash_table_size] = TableEntry(value[1], value[0], self.chess_board.hash, 0, depth)
+
+        return value
+    def quiescent_search(self, alpha, beta, colour):
+        #original_alpha = alpha
+        self.nodes_expanded += 1
+
+        evaluation = self.heuristic() * colour
+        if evaluation >= beta:
+            return beta # beta instead of evaluation?
+        if alpha < evaluation:
+            alpha = evaluation
+
+
+        self.chess_board.generate_captures_and_promotions()
+        if len(self.chess_board.current_available_moves) == 0:
+            return self.heuristic() * colour
+
+        for move in self.chess_board.current_available_moves:
+            if self.chess_board.make_move(move):
+                evaluation = -self.quiescent_search(-beta, -alpha, -colour)
+                self.chess_board.takeback()
+                if evaluation >= beta:
+                    return beta
+                if evaluation > alpha:
+                    alpha = evaluation
+        return alpha
+
+    def initial_search(self):
+        self.nodes_expanded += 1
+        self.chess_board.generate_moves()
+        self.chess_board.sort_moves(None)
+        value = np.array([-np.inf, self.chess_board.current_available_moves[0]])
+        for move in self.chess_board.current_available_moves:
+            if self.chess_board.make_move(move):
+                new_value = -self.initial_negamax()[0]
+                if new_value > value[0]:
+                    value[0] = new_value
+                    value[1] = move
+                self.chess_board.takeback()
+
+        return value
+
+    def initial_negamax(self):
+        alpha = -np.inf
+        self.chess_board.generate_moves()
+        value = np.array([-np.inf, self.chess_board.current_available_moves[0]])
+        for move in self.chess_board.current_available_moves:
+            if self.chess_board.make_move(move):
+                new_value = -self.quiescent_search(alpha, np.inf, -1)
+                self.chess_board.takeback()
+
+                if new_value > alpha:
+                    alpha = new_value
+                    value[0] = alpha
+                    value[1] = move
 
         return value
