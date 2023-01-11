@@ -296,6 +296,7 @@ class NegaMaxAgent:
                 if new_value > value[0]:
                     value[0] = new_value
                     value[1] = move
+                    self.pv_moves[1] = move
                 self.chess_board.takeback()
 
         return value
@@ -313,5 +314,6 @@ class NegaMaxAgent:
                     alpha = new_value
                     value[0] = alpha
                     value[1] = move
+                    self.pv_moves[0] = move
 
         return value
