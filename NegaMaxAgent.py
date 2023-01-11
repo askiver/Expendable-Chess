@@ -107,6 +107,8 @@ class NegaMaxAgent:
         self.transposition_table = np.zeros(shape=hash_table_size, dtype=TableEntry)
         self.nodes_expanded = 0
         self.pv_moves = np.zeros(shape=depth-1, dtype=Move)
+        self.quiescent_depth = 0
+
 
     def get_move(self):
         self.nodes_expanded = 0
@@ -256,26 +258,31 @@ class NegaMaxAgent:
     def quiescent_search(self, alpha, beta, colour):
         #original_alpha = alpha
         self.nodes_expanded += 1
+        self.quiescent_depth += 1
 
         evaluation = self.heuristic() * colour
         if evaluation >= beta:
+            self.quiescent_depth -= 1
             return beta # beta instead of evaluation?
         if alpha < evaluation:
             alpha = evaluation
 
 
         self.chess_board.generate_captures_and_promotions()
-        if len(self.chess_board.current_available_moves) == 0:
-            return self.heuristic() * colour
+        if len(self.chess_board.current_available_moves) == 0 or self.quiescent_depth == self.search_depth:
+            self.quiescent_depth -= 1
+            return evaluation
 
         for move in self.chess_board.current_available_moves:
             if self.chess_board.make_move(move):
                 evaluation = -self.quiescent_search(-beta, -alpha, -colour)
                 self.chess_board.takeback()
                 if evaluation >= beta:
+                    self.quiescent_depth -= 1
                     return beta
                 if evaluation > alpha:
                     alpha = evaluation
+        self.quiescent_depth -= 1
         return alpha
 
     def initial_search(self):
