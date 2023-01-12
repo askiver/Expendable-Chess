@@ -143,10 +143,10 @@ class Chessboard:
         self.current_available_moves = []
         self.game_history = []
 
-    def row(self, square:int):
+    def row(self, square: int):
         return np.right_shift(square, 3)
 
-    def col(self, square:int):
+    def col(self, square: int):
         return np.bitwise_and(square, 7)
 
     def get_coordinates_from_position(self, position):
@@ -163,15 +163,16 @@ class Chessboard:
         for i in range(64):
             if self.colour[i] == is_black:
                 if self.pieces[i] == PAWN:
+                    column = self.col(i)
                     if not is_black:
-                        if self.col(i) != 0 and i-9 == square:
+                        if column != 0 and i-9 == square:
                             return True
-                        if self.col(i) != 7 and i-7 == square:
+                        if column != 7 and i-7 == square:
                             return True
                     else:
-                        if self.col(i) != 0 and i+7 == square:
+                        if column != 0 and i+7 == square:
                             return True
-                        if self.col(i) != 7 and i+9 == square:
+                        if column != 7 and i+9 == square:
                             return True
                 else:
                     for j in range(OFFSETS[self.pieces[i]]):
@@ -193,11 +194,12 @@ class Chessboard:
         for i in range(64):
             if self.colour[i] == self.side:
                 if self.pieces[i] == PAWN:
+                    column = self.col(i)
                     if self.side == LIGHT:
-                        if self.col(i) != 0 and self.pieces[i-9] != EMPTY:
+                        if column != 0 and self.pieces[i-9] != EMPTY:
                             if self.colour[i-9] == DARK or (self.colour[i-9] == LIGHT and self.pieces[i-9] != KING):
                                 self.add_move(i, i-9, 17)
-                        if self.col(i) != 7 and self.pieces[i-7] != EMPTY:
+                        if column != 7 and self.pieces[i-7] != EMPTY:
                             if self.colour[i-7] == DARK or (self.colour[i-7] == LIGHT and self.pieces[i-7] != KING):
                                 self.add_move(i, i-7, 17)
                         if self.pieces[i-8] == EMPTY:
@@ -205,10 +207,10 @@ class Chessboard:
                             if i >= 48 and self.pieces[i-16] == EMPTY:
                                 self.add_move(i, i-16, 24)
                     else:
-                        if self.col(i) != 0 and self.pieces[i+7] != EMPTY:
+                        if column != 0 and self.pieces[i+7] != EMPTY:
                             if self.colour[i+7] == LIGHT or (self.colour[i+7] == DARK and self.pieces[i+7] != KING):
                                 self.add_move(i, i+7, 17)
-                        if self.col(i) != 7 and self.pieces[i+9] != EMPTY:
+                        if column != 7 and self.pieces[i+9] != EMPTY:
                             if self.colour[i+9] == LIGHT or (self.colour[i+9] == DARK and self.pieces[i+9] != KING):
                                 self.add_move(i, i+9, 17)
                         if self.pieces[i+8] == EMPTY:
@@ -243,33 +245,35 @@ class Chessboard:
             if np.bitwise_and(self.castle, 8):
                 self.add_move(E8, C8, 2)
         if self.ep != -1:
+            column = self.col(self.ep)
             if self.side == LIGHT:
-                if self.col(self.ep) != 0 and self.colour[self.ep+7] == LIGHT and self.pieces[self.ep+7] == PAWN:
+                if column != 0 and self.colour[self.ep+7] == LIGHT and self.pieces[self.ep+7] == PAWN:
                     self.add_move(self.ep+7, self.ep, 21)
-                if self.col(self.ep) != 7 and self.colour[self.ep+9] == LIGHT and self.pieces[self.ep+9] == PAWN:
+                if column != 7 and self.colour[self.ep+9] == LIGHT and self.pieces[self.ep+9] == PAWN:
                     self.add_move(self.ep+9, self.ep, 21)
             else:
-                if self.col(self.ep) != 0 and self.colour[self.ep-9] == DARK and self.pieces[self.ep-9] == PAWN:
+                if column != 0 and self.colour[self.ep-9] == DARK and self.pieces[self.ep-9] == PAWN:
                     self.add_move(self.ep-9, self.ep, 21)
-                if self.col(self.ep) != 7 and self.colour[self.ep-7] == DARK and self.pieces[self.ep-7] == PAWN:
+                if column != 7 and self.colour[self.ep-7] == DARK and self.pieces[self.ep-7] == PAWN:
                     self.add_move(self.ep-7, self.ep, 21)
 
     def generate_captures_and_promotions(self):
         for i in range(64):
             if self.colour[i] == self.side:
                 if self.pieces[i] == PAWN:
+                    column = self.col(i)
                     if self.side == LIGHT:
-                        if self.col(i) != 0 and self.colour[i-9] == DARK:
+                        if column != 0 and self.colour[i-9] == DARK:
                             self.add_move(i, i-9, 17)
-                        if self.col(i) != 7 and self.colour[i-7] == DARK:
+                        if column != 7 and self.colour[i-7] == DARK:
                             self.add_move(i, i-7, 17)
                         if i <= 15 and self.colour[i-8] == EMPTY:
                             self.add_move(i, i-8, 16)
 
                     else:
-                        if self.col(i) != 0 and self.colour[i+7] == LIGHT:
+                        if column != 0 and self.colour[i+7] == LIGHT:
                             self.add_move(i, i+7, 17)
-                        if self.col(i) != 7 and self.colour[i+9] == LIGHT:
+                        if column != 7 and self.colour[i+9] == LIGHT:
                             self.add_move(i, i+9, 17)
                         if i >= 48 and self.colour[i+8] == EMPTY:
                             self.add_move(i, i+8, 16)
@@ -287,15 +291,16 @@ class Chessboard:
                             if not SLIDE[self.pieces[i]]:
                                 break
         if self.ep != -1:
+            column = self.col(self.ep)
             if self.side == LIGHT:
-                if self.col(self.ep) != 0 and self.colour[self.ep+7] == LIGHT and self.pieces[self.ep+7] == PAWN:
+                if column != 0 and self.colour[self.ep+7] == LIGHT and self.pieces[self.ep+7] == PAWN:
                     self.add_move(self.ep+7, self.ep, 21)
-                if self.col(self.ep) != 7 and self.colour[self.ep+9] == LIGHT and self.pieces[self.ep+9] == PAWN:
+                if column != 7 and self.colour[self.ep+9] == LIGHT and self.pieces[self.ep+9] == PAWN:
                     self.add_move(self.ep+9, self.ep, 21)
             else:
-                if self.col(self.ep) != 0 and self.colour[self.ep-9] == DARK and self.pieces[self.ep-9] == PAWN:
+                if column != 0 and self.colour[self.ep-9] == DARK and self.pieces[self.ep-9] == PAWN:
                     self.add_move(self.ep-9, self.ep, 21)
-                if self.col(self.ep) != 7 and self.colour[self.ep-7] == DARK and self.pieces[self.ep-7] == PAWN:
+                if column != 7 and self.colour[self.ep-7] == DARK and self.pieces[self.ep-7] == PAWN:
                     self.add_move(self.ep-7, self.ep, 21)
 
 

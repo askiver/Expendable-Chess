@@ -292,19 +292,19 @@ class NegaMaxAgent:
         value = np.array([-np.inf, self.chess_board.current_available_moves[0]])
         for move in self.chess_board.current_available_moves:
             if self.chess_board.make_move(move):
-                new_value = -self.initial_negamax()[0]
+                new_value = -self.initial_negamax()
+                self.chess_board.takeback()
                 if new_value > value[0]:
                     value[0] = new_value
                     value[1] = move
                     self.pv_moves[1] = move
-                self.chess_board.takeback()
 
         return value
 
     def initial_negamax(self):
         alpha = -np.inf
         self.chess_board.generate_moves()
-        value = np.array([-np.inf, self.chess_board.current_available_moves[0]])
+        value = -np.inf
         for move in self.chess_board.current_available_moves:
             if self.chess_board.make_move(move):
                 new_value = -self.quiescent_search(alpha, np.inf, -1)
@@ -312,8 +312,7 @@ class NegaMaxAgent:
 
                 if new_value > alpha:
                     alpha = new_value
-                    value[0] = alpha
-                    value[1] = move
+                    value = alpha
                     self.pv_moves[0] = move
 
         return value
