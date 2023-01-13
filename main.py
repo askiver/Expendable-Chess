@@ -7,24 +7,19 @@ import pygame
 from DisplayBoard import DisplayBoard
 from NegaMaxAgent import NegaMaxAgent
 from RandomAgent import RandomAgent
-from Bishop import Bishop
+from chess_pieces.Bishop import Bishop
 from BoardSquare import BoardSquare
 from Chessboard import Chessboard
-from King import King
-from Knight import Knight
-from Pawn import Pawn
-from Queen import Queen
-from Rook import Rook
+from chess_pieces.King import King
+from chess_pieces.Knight import Knight
+from chess_pieces.Pawn import Pawn
+from chess_pieces.Queen import Queen
+from chess_pieces.Rook import Rook
 
 
 pygame.init()
 pygame.font.init()
 pygame.mixer.init()
-
-
-move_sound = pygame.mixer.Sound("sounds/move.mp3")
-capture_sound = pygame.mixer.Sound('sounds/capture.mp3')
-#game_over_sound = pygame.mixer.Sound('sounds/game_over.mp3')
 
 
 SCREEN_WIDTH = 800
@@ -33,32 +28,13 @@ BLACK_SQUARE = (181, 136, 99)
 WHITE_SQUARE = (240, 217, 181)
 MOVE_COLOUR = (135, 152, 106)
 
-screen = pygame.display.set_mode((SCREEN_HEIGHT, SCREEN_WIDTH))
+screen = pygame.display.set_mode((SCREEN_HEIGHT, SCREEN_WIDTH), pygame.RESIZABLE)
 pygame.display.set_caption("Expendable Chess")
+
+pygame_icon = pygame.image.load('icons/icon2.png')
+pygame.display.set_icon(pygame_icon)
+
 clock = pygame.time.Clock()
-
-
-def piece_image(square):
-    colour = 'w' if square.piece.is_white else 'b'
-    image_string = square.piece.piece_type + '_' + colour + '.png'
-    return pygame.transform.scale(pygame.image.load("piece_images/" + image_string).convert_alpha(), (100, 100))
-
-
-def create_board_square(x_array, y_array, chess_colour, position):
-    # Check if the screen is not square, and choose the smallest length
-    # divide the smallest dimension by 8 to get the size of each square.
-    if SCREEN_WIDTH < SCREEN_HEIGHT or SCREEN_WIDTH == SCREEN_HEIGHT:
-        width_height = SCREEN_WIDTH / 8
-    else:
-        width_height = SCREEN_HEIGHT / 8
-
-    # Finding the top left corner of each square
-    x_coordinate = x_array * width_height
-    y_coordinate = y_array * width_height
-
-    # Instantiating a board square with the coordinates, width/height, colour and if occupied and its coordinate.
-    return BoardSquare(x_coordinate, y_coordinate, width_height, position, None, chess_colour)
-
 
 def get_square_for_position(x, y):
     for row in display_board.chess_squares:
