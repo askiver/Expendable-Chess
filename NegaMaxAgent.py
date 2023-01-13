@@ -193,7 +193,6 @@ class NegaMaxAgent:
     def negamax(self, depth, alpha, beta, colour, null_search:bool):
         # TODO: add checkmate condition
         if depth == 0:
-            # return np.array([self.quiescent_search(alpha, beta, colour)])
             return np.array([self.quiescent_search(alpha, beta, colour)])
 
         self.nodes_expanded += 1

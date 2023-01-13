@@ -27,11 +27,14 @@ class TransTable:
         hash_value = 0
         for i in range(64):
             if colour[i] != 6:
-                hash_value = np.bitwise_xor(hash_value, self.hash_table[colour[i]][pieces[i]][i])
+                #hash_value = np.bitwise_xor(hash_value, self.hash_table[colour[i]][pieces[i]][i])
+                hash_value ^= self.hash_table[colour[i]][pieces[i]][i]
         if side:
-            hash_value = np.bitwise_xor(hash_value, self.hash_side)
+            #hash_value = np.bitwise_xor(hash_value, self.hash_side)
+            hash_value ^= self.hash_side
         if ep != -1:
-            hash_value = np.bitwise_xor(hash_value, self.hash_ep[ep])
+            #hash_value = np.bitwise_xor(hash_value, self.hash_ep[ep])
+            hash_value ^= self.hash_ep[ep]
         return hash_value
 
 
