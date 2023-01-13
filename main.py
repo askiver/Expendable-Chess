@@ -6,15 +6,7 @@ import pygame
 
 from DisplayBoard import DisplayBoard
 from NegaMaxAgent import NegaMaxAgent
-from RandomAgent import RandomAgent
-from chess_pieces.Bishop import Bishop
-from BoardSquare import BoardSquare
 from Chessboard import Chessboard
-from chess_pieces.King import King
-from chess_pieces.Knight import Knight
-from chess_pieces.Pawn import Pawn
-from chess_pieces.Queen import Queen
-from chess_pieces.Rook import Rook
 
 
 pygame.init()
