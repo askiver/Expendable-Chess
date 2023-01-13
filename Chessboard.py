@@ -142,11 +142,12 @@ class Chessboard:
         self.current_available_moves = []
         self.game_history = []
 
-    def row(self, square:int):
+    def row(self, square: int):
         return np.right_shift(square, 3)
 
-    def col(self, square:int):
-        return np.bitwise_and(square, 7)
+    def col(self, square: int):
+        return square & 7
+        #return np.bitwise_and(square, 7)
 
     def get_coordinates_from_position(self, position):
         square = self.get_square_from_position(position)
@@ -162,15 +163,16 @@ class Chessboard:
         for i in range(64):
             if self.colour[i] == is_black:
                 if self.pieces[i] == PAWN:
+                    column = self.col(i)
                     if not is_black:
-                        if self.col(i) != 0 and i-9 == square:
+                        if column != 0 and i-9 == square:
                             return True
-                        if self.col(i) != 7 and i-7 == square:
+                        if column != 7 and i-7 == square:
                             return True
                     else:
-                        if self.col(i) != 0 and i+7 == square:
+                        if column != 0 and i+7 == square:
                             return True
-                        if self.col(i) != 7 and i+9 == square:
+                        if column != 7 and i+9 == square:
                             return True
                 else:
                     for j in range(OFFSETS[self.pieces[i]]):
@@ -192,11 +194,12 @@ class Chessboard:
         for i in range(64):
             if self.colour[i] == self.side:
                 if self.pieces[i] == PAWN:
+                    column = self.col(i)
                     if self.side == LIGHT:
-                        if self.col(i) != 0 and self.pieces[i-9] != EMPTY:
+                        if column != 0 and self.pieces[i-9] != EMPTY:
                             if self.colour[i-9] == DARK or (self.colour[i-9] == LIGHT and self.pieces[i-9] != KING):
                                 self.add_move(i, i-9, 17)
-                        if self.col(i) != 7 and self.pieces[i-7] != EMPTY:
+                        if column != 7 and self.pieces[i-7] != EMPTY:
                             if self.colour[i-7] == DARK or (self.colour[i-7] == LIGHT and self.pieces[i-7] != KING):
                                 self.add_move(i, i-7, 17)
                         if self.pieces[i-8] == EMPTY:
@@ -204,10 +207,10 @@ class Chessboard:
                             if i >= 48 and self.pieces[i-16] == EMPTY:
                                 self.add_move(i, i-16, 24)
                     else:
-                        if self.col(i) != 0 and self.pieces[i+7] != EMPTY:
+                        if column != 0 and self.pieces[i+7] != EMPTY:
                             if self.colour[i+7] == LIGHT or (self.colour[i+7] == DARK and self.pieces[i+7] != KING):
                                 self.add_move(i, i+7, 17)
-                        if self.col(i) != 7 and self.pieces[i+9] != EMPTY:
+                        if column != 7 and self.pieces[i+9] != EMPTY:
                             if self.colour[i+9] == LIGHT or (self.colour[i+9] == DARK and self.pieces[i+9] != KING):
                                 self.add_move(i, i+9, 17)
                         if self.pieces[i+8] == EMPTY:
@@ -232,43 +235,49 @@ class Chessboard:
                             if not SLIDE[self.pieces[i]]:
                                 break
         if self.side == LIGHT:
-            if np.bitwise_and(self.castle, 1):
+            if self.castle & 1 != 0:
+            #if np.bitwise_and(self.castle, 1):
                 self.add_move(E1, G1, 2)
-            if np.bitwise_and(self.castle, 2):
+            if self.castle & 2 != 0:
+            #if np.bitwise_and(self.castle, 2):
                 self.add_move(E1, C1, 2)
         else:
-            if np.bitwise_and(self.castle, 4):
+            if self.castle & 4 != 0:
+            #if np.bitwise_and(self.castle, 4):
                 self.add_move(E8, G8, 2)
-            if np.bitwise_and(self.castle, 8):
+            if self.castle & 8 != 0:
+            #if np.bitwise_and(self.castle, 8):
                 self.add_move(E8, C8, 2)
         if self.ep != -1:
+            column = self.col(self.ep)
             if self.side == LIGHT:
-                if self.col(self.ep) != 0 and self.colour[self.ep+7] == LIGHT and self.pieces[self.ep+7] == PAWN:
+                if column != 0 and self.colour[self.ep+7] == LIGHT and self.pieces[self.ep+7] == PAWN:
                     self.add_move(self.ep+7, self.ep, 21)
-                if self.col(self.ep) != 7 and self.colour[self.ep+9] == LIGHT and self.pieces[self.ep+9] == PAWN:
+                if column != 7 and self.colour[self.ep+9] == LIGHT and self.pieces[self.ep+9] == PAWN:
                     self.add_move(self.ep+9, self.ep, 21)
             else:
-                if self.col(self.ep) != 0 and self.colour[self.ep-9] == DARK and self.pieces[self.ep-9] == PAWN:
+                if column != 0 and self.colour[self.ep-9] == DARK and self.pieces[self.ep-9] == PAWN:
                     self.add_move(self.ep-9, self.ep, 21)
-                if self.col(self.ep) != 7 and self.colour[self.ep-7] == DARK and self.pieces[self.ep-7] == PAWN:
+                if column != 7 and self.colour[self.ep-7] == DARK and self.pieces[self.ep-7] == PAWN:
                     self.add_move(self.ep-7, self.ep, 21)
 
     def generate_captures_and_promotions(self):
         for i in range(64):
             if self.colour[i] == self.side:
                 if self.pieces[i] == PAWN:
+                    column = self.col(i)
                     if self.side == LIGHT:
-                        if self.col(i) != 0 and self.colour[i-9] == DARK:
+                        if column != 0 and self.colour[i-9] == DARK:
                             self.add_move(i, i-9, 17)
-                        if self.col(i) != 7 and self.colour[i-7] == DARK:
+                        if column != 7 and self.colour[i-7] == DARK:
                             self.add_move(i, i-7, 17)
                         if i <= 15 and self.colour[i-8] == EMPTY:
                             self.add_move(i, i-8, 16)
 
                     else:
-                        if self.col(i) != 0 and self.colour[i+7] == LIGHT:
+                        if column != 0 and self.colour[i+7] == LIGHT:
                             self.add_move(i, i+7, 17)
-                        if self.col(i) != 7 and self.colour[i+9] == LIGHT:
+                        if column != 7 and self.colour[i+9] == LIGHT:
                             self.add_move(i, i+9, 17)
                         if i >= 48 and self.colour[i+8] == EMPTY:
                             self.add_move(i, i+8, 16)
@@ -286,21 +295,22 @@ class Chessboard:
                             if not SLIDE[self.pieces[i]]:
                                 break
         if self.ep != -1:
+            column = self.col(self.ep)
             if self.side == LIGHT:
-                if self.col(self.ep) != 0 and self.colour[self.ep+7] == LIGHT and self.pieces[self.ep+7] == PAWN:
+                if column != 0 and self.colour[self.ep+7] == LIGHT and self.pieces[self.ep+7] == PAWN:
                     self.add_move(self.ep+7, self.ep, 21)
-                if self.col(self.ep) != 7 and self.colour[self.ep+9] == LIGHT and self.pieces[self.ep+9] == PAWN:
+                if column != 7 and self.colour[self.ep+9] == LIGHT and self.pieces[self.ep+9] == PAWN:
                     self.add_move(self.ep+9, self.ep, 21)
             else:
-                if self.col(self.ep) != 0 and self.colour[self.ep-9] == DARK and self.pieces[self.ep-9] == PAWN:
+                if column != 0 and self.colour[self.ep-9] == DARK and self.pieces[self.ep-9] == PAWN:
                     self.add_move(self.ep-9, self.ep, 21)
-                if self.col(self.ep) != 7 and self.colour[self.ep-7] == DARK and self.pieces[self.ep-7] == PAWN:
+                if column != 7 and self.colour[self.ep-7] == DARK and self.pieces[self.ep-7] == PAWN:
                     self.add_move(self.ep-7, self.ep, 21)
 
 
     def add_move(self, from_square, to_square, flag):
-
-        if np.bitwise_and(flag, 16):
+        if flag & 16 != 0:
+        #if np.bitwise_and(flag, 16):
             if self.side == LIGHT:
                 if to_square <= H8:
                     self.add_promote(from_square, to_square, flag)
@@ -318,11 +328,13 @@ class Chessboard:
 
     def add_promote(self, from_square, to_square, flag):
         # TODO add promotion support for other pieces
-        move = Move(from_square, to_square, np.bitwise_or(flag, 32), QUEEN, QUEEN)
+        #move = Move(from_square, to_square, np.bitwise_or(flag, 32), QUEEN, QUEEN)
+        move = Move(from_square, to_square, flag | 32, QUEEN, QUEEN)
         self.current_available_moves.append(move)
 
     def make_move(self, move):
-        if np.bitwise_and(move.bits, 2):
+        if move.bits & 2 != 0:
+        #if np.bitwise_and(move.bits, 2):
             if self.in_check(self.side):
                 return False
             match move.move_to:
@@ -361,9 +373,11 @@ class Chessboard:
         self.current_available_moves = []
 
 
-        self.castle = np.bitwise_and(self.castle, np.bitwise_and(CASTLE_MASK[move.move_from], CASTLE_MASK[move.move_to]))
+        #self.castle = np.bitwise_and(self.castle, np.bitwise_and(CASTLE_MASK[move.move_from], CASTLE_MASK[move.move_to]))
+        self.castle = CASTLE_MASK[move.move_from] & CASTLE_MASK[move.move_to] & self.castle
 
-        if np.bitwise_and(move.bits, 8):
+        if move.bits & 8 != 0:
+        #if np.bitwise_and(move.bits, 8):
             if self.side == LIGHT:
                 self.ep = move.move_to + 8
             else:
@@ -372,14 +386,16 @@ class Chessboard:
             self.ep = -1
 
         self.colour[move.move_to] = self.side
-        if np.bitwise_and(move.bits, 32):
+        if move.bits & 32 != 0:
+        #if np.bitwise_and(move.bits, 32):
             self.pieces[move.move_to] = move.promote
         else:
             self.pieces[move.move_to] = self.pieces[move.move_from]
         self.colour[move.move_from] = EMPTY
         self.pieces[move.move_from] = EMPTY
 
-        if np.bitwise_and(move.bits, 4):
+        if move.bits & 4 != 0:
+        #if np.bitwise_and(move.bits, 4):
             if self.side == LIGHT:
                 self.colour[move.move_to+8] = EMPTY
                 self.pieces[move.move_to+8] = EMPTY
@@ -387,7 +403,8 @@ class Chessboard:
                 self.colour[move.move_to-8] = EMPTY
                 self.pieces[move.move_to-8] = EMPTY
 
-        self.side = np.bitwise_xor(self.side, 1)
+        #self.side = np.bitwise_xor(self.side, 1)
+        self.side ^= 1
         if self.in_check(not self.side):
             self.takeback()
             return False
@@ -396,7 +413,8 @@ class Chessboard:
 
     def takeback(self):
 
-        self.side = np.bitwise_xor(self.side, 1)
+        #self.side = np.bitwise_xor(self.side, 1)
+        self.side ^= 1
         game_state = self.game_history.pop()
         move = game_state.move
         capture = game_state.capture
@@ -407,7 +425,8 @@ class Chessboard:
         self.current_available_moves = game_state.move_list
 
         self.colour[move.move_from] = self.side
-        if np.bitwise_and(move.bits, 32):
+        #if np.bitwise_and(move.bits, 32):
+        if move.bits & 32 != 0:
             self.pieces[move.move_from] = PAWN
         else:
             self.pieces[move.move_from] = self.pieces[move.move_to]
@@ -418,7 +437,8 @@ class Chessboard:
             self.colour[move.move_to] = capture_colour
             self.pieces[move.move_to] = capture
 
-        if np.bitwise_and(move.bits, 2):
+        if move.bits & 2 != 0:
+        #if np.bitwise_and(move.bits, 2):
             match move.move_to:
                 case 62:
                     move_from = F1
@@ -440,12 +460,15 @@ class Chessboard:
             self.colour[move_from] = EMPTY
             self.pieces[move_from] = EMPTY
 
-        if np.bitwise_and(move.bits, 4):
+        if move.bits & 4 != 0:
+        #if np.bitwise_and(move.bits, 4):
             if self.side == LIGHT:
-                self.colour[move.move_to+8] = np.bitwise_xor(self.side, 1)
+                self.colour[move.move_to+8] = self.side ^ 1
+                #self.colour[move.move_to+8] = np.bitwise_xor(self.side, 1)
                 self.pieces[move.move_to+8] = PAWN
             else:
-                self.colour[move.move_to-8] = np.bitwise_xor(self.side, 1)
+                self.colour[move.move_to - 8] = self.side ^ 1
+                #self.colour[move.move_to-8] = np.bitwise_xor(self.side, 1)
                 self.pieces[move.move_to-8] = PAWN
 
     # Finds move in the list and places it at the front
