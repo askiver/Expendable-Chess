@@ -4,12 +4,13 @@ import numpy as np
 import pygame
 
 from BoardSquare import BoardSquare
-from chess_pieces.Bishop import Bishop
+from Piece import Piece
+""" from chess_pieces.Bishop import Bishop
 from chess_pieces.King import King
 from chess_pieces.Knight import Knight
 from chess_pieces.Pawn import Pawn
 from chess_pieces.Queen import Queen
-from chess_pieces.Rook import Rook
+from chess_pieces.Rook import Rook """
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 800
@@ -62,40 +63,40 @@ class DisplayBoard:
         for square in self.chess_squares:
 
             if square.position == 'A8' or square.position == 'H8':
-                square.piece = Rook(False)
+                square.piece = Piece("rook", False)
 
             elif square.position == 'B8' or square.position == 'G8':
-                square.piece = Knight(False)
+                square.piece = Piece("knight", False)
 
             elif square.position == 'C8' or square.position == 'F8':
-                square.piece = Bishop(False)
+                square.piece = Piece("bishop", False)
 
             elif square.position == 'D8':
-                square.piece = Queen(False)
+                square.piece = Piece("queen", False)
 
             elif square.position == 'E8':
-                square.piece = King(False)
+                square.piece = Piece("king", False)
 
             elif "7" in square.position:
-                square.piece = Pawn(False)
+                square.piece = Piece("pawn", False)
 
             elif "2" in square.position:
-                square.piece = Pawn(True)
+                square.piece = Piece("pawn", True)
 
             elif square.position == 'A1' or square.position == 'H1':
-                square.piece = Rook(True)
+                square.piece = Piece("rook", True)
 
             elif square.position == 'B1' or square.position == 'G1':
-                square.piece = Knight(True)
+                square.piece = Piece("knight", True)
 
             elif square.position == 'C1' or square.position == 'F1':
-                square.piece = Bishop(True)
+                square.piece = Piece("bishop", True)
 
             elif square.position == 'D1':
-                square.piece = Queen(True)
+                square.piece = Piece("queen", True)
 
             elif square.position == 'E1':
-                square.piece = King(True)
+                square.piece = Piece("king", True)
 
     def update_board(self):
         for i in range(64):
@@ -106,32 +107,18 @@ class DisplayBoard:
 
 
     def bitboard_value_to_piece(self, bitboard_piece, bitboard_colour):
+        value_to_piece = {
+            0: "pawn",
+            1: "knight",
+            2: "bishop",
+            3: "rook",
+            4: "queen",
+            5: "king"
+        }
         if bitboard_colour == 0:
-            if bitboard_piece == 0:
-                return Pawn(True)
-            elif bitboard_piece == 1:
-                return Knight(True)
-            elif bitboard_piece == 2:
-                return Bishop(True)
-            elif bitboard_piece == 3:
-                return Rook(True)
-            elif bitboard_piece == 4:
-                return Queen(True)
-            elif bitboard_piece == 5:
-                return King(True)
+            return Piece(value_to_piece[bitboard_piece], True)
         elif bitboard_colour == 1:
-            if bitboard_piece == 0:
-                return Pawn(False)
-            elif bitboard_piece == 1:
-                return Knight(False)
-            elif bitboard_piece == 2:
-                return Bishop(False)
-            elif bitboard_piece == 3:
-                return Rook(False)
-            elif bitboard_piece == 4:
-                return Queen(False)
-            elif bitboard_piece == 5:
-                return King(False)
+            return Piece(value_to_piece[bitboard_piece], False)
 
     def display_piece_moves(self,square):
         start_position = ""
